@@ -96,23 +96,20 @@ export const NavigationTree: React.FC<NavigationTreeProps> = ({ navigation, init
 
   const selectedItem = items[selectedIndex];
   
-  // Handle terminal size for scrolling
+  // Handle terminal size for scrolling - use a simpler calculation
   const terminalHeight = process.stdout.rows || 30;
   
-  // Calculate space used by fixed elements
-  const headerLines = 3; // Header with border
-  const footerLines = 3; // Footer with border
-  const scrollIndicatorLines = items.length > 20 ? 2 : 0;
-  const breadcrumbLines = selectedItem && selectedItem.depth > 0 && !showHelp && !showStats ? 2 : 0;
+  // Base height calculation - leave room for UI elements
+  let availableHeight = terminalHeight - 8; // Basic UI chrome
   
-  // Calculate space for panels
-  const helpPanelLines = showHelp ? 11 : 0; // Help panel height
-  const statsPanelLines = showStats ? 10 : 0; // Stats panel height
+  if (showHelp) {
+    availableHeight -= 10; // Help panel takes about 10 lines
+  }
+  if (showStats) {
+    availableHeight -= 9; // Stats panel takes about 9 lines
+  }
   
-  // Calculate available space for tree view
-  const usedLines = headerLines + footerLines + helpPanelLines + statsPanelLines + scrollIndicatorLines + breadcrumbLines;
-  const maxVisibleItems = Math.max(5, terminalHeight - usedLines);
-  
+  const maxVisibleItems = Math.max(3, availableHeight);
   const scrollOffset = Math.max(0, Math.min(selectedIndex - maxVisibleItems + 1, items.length - maxVisibleItems));
   const visibleItems = items.slice(scrollOffset, scrollOffset + maxVisibleItems);
 
@@ -189,13 +186,13 @@ export const NavigationTree: React.FC<NavigationTreeProps> = ({ navigation, init
   });
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" height={terminalHeight}>
       {/* Header */}
       <Box 
         borderStyle="round" 
         borderColor="cyan" 
         paddingX={1}
-        marginBottom={1}
+        flexShrink={0}
       >
         <Text bold color="cyan">VTEX Navigation Tree</Text>
         <Text color="gray"> │ </Text>
@@ -211,7 +208,7 @@ export const NavigationTree: React.FC<NavigationTreeProps> = ({ navigation, init
       </Box>
 
       {/* Tree view */}
-      <Box flexDirection="column" height={maxVisibleItems}>
+      <Box flexDirection="column" flexGrow={1} overflow="hidden">
         {visibleItems.map((item, visualIndex) => {
           const actualIndex = scrollOffset + visualIndex;
           const isSelected = actualIndex === selectedIndex;
@@ -249,8 +246,8 @@ export const NavigationTree: React.FC<NavigationTreeProps> = ({ navigation, init
       </Box>
 
       {/* Scroll indicator */}
-      {items.length > maxVisibleItems && !showHelp && !showStats && (
-        <Box marginTop={1}>
+      {items.length > maxVisibleItems && (
+        <Box flexShrink={0}>
           <Text color="gray">
             [{scrollOffset + 1}-{Math.min(scrollOffset + maxVisibleItems, items.length)} of {items.length}]
           </Text>
@@ -259,7 +256,7 @@ export const NavigationTree: React.FC<NavigationTreeProps> = ({ navigation, init
 
       {/* Help panel */}
       {showHelp && (
-        <Box borderStyle="single" borderColor="yellow" padding={1} marginTop={1} flexDirection="column">
+        <Box borderStyle="single" borderColor="yellow" padding={1} flexDirection="column" flexShrink={0}>
           <Text bold color="yellow">Keyboard Shortcuts</Text>
           <Text> </Text>
           <Box flexDirection="row">
@@ -290,7 +287,7 @@ export const NavigationTree: React.FC<NavigationTreeProps> = ({ navigation, init
 
       {/* Stats panel */}
       {showStats && (
-        <Box borderStyle="single" borderColor="green" padding={1} marginTop={1} flexDirection="column">
+        <Box borderStyle="single" borderColor="green" padding={1} flexDirection="column" flexShrink={0}>
           <Text bold color="green">Navigation Statistics</Text>
           <Text> </Text>
           <Box flexDirection="column">
@@ -309,10 +306,10 @@ export const NavigationTree: React.FC<NavigationTreeProps> = ({ navigation, init
 
       {/* Footer */}
       <Box 
-        marginTop={1} 
         borderStyle="single" 
         borderColor="gray" 
         paddingX={1}
+        flexShrink={0}
       >
         <Text color="gray">
           ↑↓ Nav • Space: Expand • h: Help • i: Stats • q: Quit
@@ -320,8 +317,8 @@ export const NavigationTree: React.FC<NavigationTreeProps> = ({ navigation, init
       </Box>
 
       {/* Breadcrumb */}
-      {selectedItem && selectedItem.depth > 0 && !showHelp && !showStats && (
-        <Box marginTop={1}>
+      {selectedItem && selectedItem.depth > 0 && (
+        <Box flexShrink={0}>
           <Text color="gray" dimColor>
             Path: {selectedItem.path.join(' › ')}
           </Text>
