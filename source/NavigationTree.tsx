@@ -95,7 +95,9 @@ export const NavigationTree: React.FC<NavigationTreeProps> = ({ navigation, init
   }, [navigation, expandedItems, currentLanguage]);
 
   // Handle terminal size for scrolling
-  const maxVisibleItems = process.stdout.rows ? Math.max(10, process.stdout.rows - 12) : 20;
+  const terminalHeight = process.stdout.rows || 30;
+  const reservedLines = showHelp ? 20 : showStats ? 12 : 8; // Reserve space for panels
+  const maxVisibleItems = Math.max(5, terminalHeight - reservedLines);
   const scrollOffset = Math.max(0, Math.min(selectedIndex - maxVisibleItems + 1, items.length - maxVisibleItems));
   const visibleItems = items.slice(scrollOffset, scrollOffset + maxVisibleItems);
 
@@ -196,7 +198,7 @@ export const NavigationTree: React.FC<NavigationTreeProps> = ({ navigation, init
       </Box>
 
       {/* Tree view */}
-      <Box flexDirection="column" height={showHelp || showStats ? maxVisibleItems - 8 : maxVisibleItems}>
+      <Box flexDirection="column" height={maxVisibleItems}>
         {visibleItems.map((item, visualIndex) => {
           const actualIndex = scrollOffset + visualIndex;
           const isSelected = actualIndex === selectedIndex;
@@ -244,29 +246,51 @@ export const NavigationTree: React.FC<NavigationTreeProps> = ({ navigation, init
 
       {/* Help panel */}
       {showHelp && (
-        <Box borderStyle="single" borderColor="yellow" paddingX={1} marginTop={1} flexDirection="column">
+        <Box borderStyle="single" borderColor="yellow" padding={1} marginTop={1} flexDirection="column">
+          <Text bold color="yellow">Keyboard Shortcuts</Text>
+          <Text> </Text>
           <Box flexDirection="row">
-            <Text color="cyan">Nav:</Text>
-            <Text> ↑↓/PgUp/Dn/Space/a </Text>
-            <Text color="cyan">Lang:</Text>
-            <Text> e/s/p </Text>
-            <Text color="cyan">Other:</Text>
-            <Text> h/i/q </Text>
-            <Text color="gray">[h to close]</Text>
+            <Box flexDirection="column" marginRight={2}>
+              <Text color="cyan">Navigation:</Text>
+              <Text>  ↑/↓     Navigate items</Text>
+              <Text>  PgUp/Dn Navigate faster</Text>
+              <Text>  Space   Expand/collapse</Text>
+              <Text>  a       Toggle all</Text>
+            </Box>
+            <Box flexDirection="column" marginRight={2}>
+              <Text color="cyan">Language:</Text>
+              <Text>  e  English</Text>
+              <Text>  s  Spanish</Text>
+              <Text>  p  Portuguese</Text>
+            </Box>
+            <Box flexDirection="column">
+              <Text color="cyan">Other:</Text>
+              <Text>  h/?  Toggle help</Text>
+              <Text>  i    Toggle stats</Text>
+              <Text>  q    Quit</Text>
+            </Box>
           </Box>
+          <Text> </Text>
+          <Text color="gray">Press h to close help</Text>
         </Box>
       )}
 
       {/* Stats panel */}
       {showStats && (
-        <Box borderStyle="single" borderColor="green" paddingX={1} marginTop={1} flexDirection="column">
-          <Box flexDirection="row">
-            <Text>Sections: {stats.sections} </Text>
-            <Text>Categories: {stats.totalCategories} </Text>
-            <Text>Docs: {stats.totalDocuments} </Text>
-            <Text>Depth: {stats.maxDepth} </Text>
-            <Text color="gray">[i to close]</Text>
+        <Box borderStyle="single" borderColor="green" padding={1} marginTop={1} flexDirection="column">
+          <Text bold color="green">Navigation Statistics</Text>
+          <Text> </Text>
+          <Box flexDirection="column">
+            <Text>Sections:    {stats.sections}</Text>
+            <Text>Categories:  {stats.totalCategories}</Text>
+            <Text>Documents:   {stats.totalDocuments}</Text>
+            <Text>Max Depth:   {stats.maxDepth} levels</Text>
+            <Text> </Text>
+            <Text>Expanded:    {expandedItems.size} items</Text>
+            <Text>Current:     {selectedIndex + 1} of {items.length}</Text>
           </Box>
+          <Text> </Text>
+          <Text color="gray">Press i to close stats</Text>
         </Box>
       )}
 
