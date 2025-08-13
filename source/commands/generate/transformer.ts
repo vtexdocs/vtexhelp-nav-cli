@@ -37,8 +37,9 @@ export class NavigationTransformer {
         totalDocuments: hierarchy.stats.totalDocuments,
       });
 
-      // Build navbar structure
-      const navbar = await this.buildNavbar(hierarchy);
+      // Build navbar structure with duplicate tracking
+      const { navbar, duplicateWarnings } = await this.buildNavbar(hierarchy);
+      warnings.push(...duplicateWarnings);
       
       const navigationData: NavigationData = {
         navbar,
@@ -55,6 +56,7 @@ export class NavigationTransformer {
           sectionsGenerated: Object.keys(hierarchy.sections).length,
           totalNodes: this.countNavigationNodes(navbar),
           languages: this.options.languages,
+          duplicatesFound: duplicateWarnings.length,
         },
       };
 
@@ -63,6 +65,7 @@ export class NavigationTransformer {
       this.logger.info('Navigation transformation completed', {
         sections: Object.keys(hierarchy.sections).length,
         totalNodes: this.countNavigationNodes(navbar),
+        duplicates: duplicateWarnings.length,
         duration: `${duration}ms`,
       });
 
@@ -86,17 +89,18 @@ export class NavigationTransformer {
     }
   }
 
-  private async buildNavbar(hierarchy: CategoryHierarchy): Promise<NavigationSection[]> {
+  private async buildNavbar(hierarchy: CategoryHierarchy): Promise<{ navbar: NavigationSection[], duplicateWarnings: string[] }> {
     this.logger.info('Building unified multilingual navigation structure');
     
     const sections: NavigationSection[] = [];
+    const allDuplicateWarnings: string[] = [];
     
     for (const [sectionName, categoryMap] of Object.entries(hierarchy.sections)) {
       if (this.options.sections.length > 0 && !this.options.sections.includes(sectionName)) {
         continue;
       }
 
-      const section = await this.buildNavigationSection(
+      const { section, duplicateWarnings } = await this.buildNavigationSection(
         sectionName, 
         categoryMap, 
         hierarchy
@@ -105,20 +109,23 @@ export class NavigationTransformer {
       if (section) {
         sections.push(section);
       }
+      
+      allDuplicateWarnings.push(...duplicateWarnings);
     }
     
     this.logger.info('Completed unified navigation structure', {
       sections: sections.length,
+      duplicatesFound: allDuplicateWarnings.length,
     });
 
-    return sections;
+    return { navbar: sections, duplicateWarnings: allDuplicateWarnings };
   }
 
   private async buildNavigationSection(
     sectionName: string,
     categoryMap: any,
     hierarchy: CategoryHierarchy
-  ): Promise<NavigationSection | null> {
+  ): Promise<{ section: NavigationSection | null, duplicateWarnings: string[] }> {
     
     try {
       // Create section name mapping
@@ -127,8 +134,20 @@ export class NavigationTransformer {
         sectionNameMap[lang] = this.getSectionDisplayName(sectionName);
       }
 
+      // Create section-level slug tracking to prevent duplicates across categories
+      const sectionProcessedSlugs = new Set<string>();
+      const slugToFileMap = new Map<string, ContentFile>();
+      const duplicateWarnings: string[] = [];
+
       // Build category tree (unified across all languages)
-      const categories = await this.buildCategoryNodes(categoryMap, hierarchy);
+      const categories = await this.buildCategoryNodes(
+        categoryMap, 
+        hierarchy, 
+        sectionProcessedSlugs, 
+        slugToFileMap, 
+        duplicateWarnings,
+        sectionName
+      );
 
       const section: NavigationSection = {
         documentation: sectionName,
@@ -140,19 +159,25 @@ export class NavigationTransformer {
       this.logger.debug(`Built section: ${sectionName}`, {
         categories: categories.length,
         name: sectionNameMap,
+        uniqueDocuments: sectionProcessedSlugs.size,
+        duplicatesSkipped: duplicateWarnings.length,
       });
 
-      return section;
+      return { section, duplicateWarnings };
 
     } catch (error) {
       this.logger.error(`Failed to build section ${sectionName}`, { error });
-      return null;
+      return { section: null, duplicateWarnings: [] };
     }
   }
 
   private async buildCategoryNodes(
     categoryMap: any,
-    hierarchy: CategoryHierarchy
+    hierarchy: CategoryHierarchy,
+    sectionProcessedSlugs?: Set<string>,
+    slugToFileMap?: Map<string, ContentFile>,
+    duplicateWarnings?: string[],
+    sectionName?: string
   ): Promise<NavigationNode[]> {
     const nodes: NavigationNode[] = [];
 
@@ -164,7 +189,14 @@ export class NavigationTransformer {
       const categoryInfo = categoryData as any;
 
       try {
-        const node = await this.buildNavigationNode(categoryInfo, hierarchy);
+        const node = await this.buildNavigationNode(
+          categoryInfo, 
+          hierarchy, 
+          sectionProcessedSlugs, 
+          slugToFileMap, 
+          duplicateWarnings, 
+          sectionName
+        );
         if (node) {
           nodes.push(node);
         }
@@ -180,7 +212,11 @@ export class NavigationTransformer {
 
   private async buildNavigationNode(
     categoryInfo: any,
-    hierarchy: CategoryHierarchy
+    hierarchy: CategoryHierarchy,
+    sectionProcessedSlugs?: Set<string>,
+    slugToFileMap?: Map<string, ContentFile>,
+    duplicateWarnings?: string[],
+    sectionName?: string
   ): Promise<NavigationNode | null> {
     
     try {
@@ -192,7 +228,14 @@ export class NavigationTransformer {
 
       if (Array.isArray(children)) {
         // This is a category with documents
-        const documents = await this.buildDocumentNodes(children, hierarchy);
+        const documents = await this.buildDocumentNodes(
+          children, 
+          hierarchy, 
+          sectionProcessedSlugs, 
+          slugToFileMap, 
+          duplicateWarnings, 
+          sectionName
+        );
         
         return {
           name,
@@ -203,7 +246,14 @@ export class NavigationTransformer {
         } as NavigationNode;
       } else if (children && typeof children === 'object') {
         // This is a category with subcategories
-        const subcategoryNodes = await this.buildCategoryNodes(children, hierarchy);
+        const subcategoryNodes = await this.buildCategoryNodes(
+          children, 
+          hierarchy, 
+          sectionProcessedSlugs, 
+          slugToFileMap, 
+          duplicateWarnings, 
+          sectionName
+        );
         
         return {
           name,
@@ -225,19 +275,81 @@ export class NavigationTransformer {
 
   private async buildDocumentNodes(
     files: ContentFile[],
-    hierarchy: CategoryHierarchy
+    hierarchy: CategoryHierarchy,
+    sectionProcessedSlugs?: Set<string>,
+    slugToFileMap?: Map<string, ContentFile>,
+    duplicateWarnings?: string[],
+    sectionName?: string
   ): Promise<NavigationNode[]> {
     const nodes: NavigationNode[] = [];
-    const processedSlugs = new Set<string>();
+    
+    // Use section-level slug tracking if provided, otherwise fall back to category-level
+    const processedSlugs = sectionProcessedSlugs || new Set<string>();
+    const fileMap = slugToFileMap || new Map<string, ContentFile>();
+    const warnings = duplicateWarnings || [];
 
     for (const file of files) {
       try {
-        // Skip duplicates - only process each unique slug once
+        // Skip duplicates - only process each unique slug once (at section level)
         const slugKey = file.metadata.slugEN || this.generateSlug(file);
+        
         if (processedSlugs.has(slugKey)) {
+          // Create detailed duplicate warning with comprehensive file information
+          const originalFile = fileMap.get(slugKey);
+          if (originalFile) {
+            // Create comprehensive warning message with all relevant details
+            const warningMsg = [
+              `Duplicate slug '${slugKey}' detected in section '${sectionName || 'unknown'}':`,
+              `  • Original: '${originalFile.path}'`,
+              `    - Title: "${originalFile.metadata.title}"`,
+              `    - Category: ${originalFile.category || 'None'}`,
+              `    - Subcategory: ${originalFile.subcategory || 'None'}`,
+              `    - Language: ${originalFile.language}`,
+              `  • Duplicate (SKIPPED): '${file.path}'`,
+              `    - Title: "${file.metadata.title}"`,
+              `    - Category: ${file.category || 'None'}`,
+              `    - Subcategory: ${file.subcategory || 'None'}`,
+              `    - Language: ${file.language}`,
+              `  ➤ Resolution: Ensure each document has a unique 'slug' or 'slugEN' in its frontmatter within this section.`
+            ].join('\n');
+            
+            warnings.push(warningMsg);
+            
+            // Display detailed warning immediately in console only if showWarnings is enabled
+            if (this.options.showWarnings) {
+              this.logger.warn(`\n⚠️  DUPLICATE SLUG DETECTED:\n${warningMsg}`);
+            } else {
+              // Show brief warning without details
+              this.logger.warn(`Duplicate document slug detected: ${slugKey}`);
+            }
+            
+            // Also log structured data for debugging
+            this.logger.debug(`Duplicate document slug detected`, {
+              slug: slugKey,
+              section: sectionName,
+              originalFile: {
+                path: originalFile.path,
+                title: originalFile.metadata.title,
+                category: originalFile.category,
+                subcategory: originalFile.subcategory,
+                language: originalFile.language,
+                slugEN: originalFile.metadata.slugEN
+              },
+              duplicateFile: {
+                path: file.path,
+                title: file.metadata.title,
+                category: file.category,
+                subcategory: file.subcategory,
+                language: file.language,
+                slugEN: file.metadata.slugEN
+              }
+            });
+          }
           continue;
         }
+        
         processedSlugs.add(slugKey);
+        fileMap.set(slugKey, file);
         
         const node = await this.buildDocumentNode(file, hierarchy);
         if (node) {

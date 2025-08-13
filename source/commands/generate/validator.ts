@@ -164,11 +164,12 @@ export class NavigationValidator {
   private async validateContent(navigationData: NavigationData): Promise<{ warnings: string[] }> {
     const warnings: string[] = [];
 
-    // Check for duplicate slugs across all sections
+    // Check for duplicate slugs within each section (slugs should be unique per section)
     if (Array.isArray(navigationData.navbar)) {
-      const slugs = new Set<string>();
-      const duplicateCheck = this.collectAndCheckSlugs(navigationData.navbar, slugs);
-      warnings.push(...duplicateCheck.warnings);
+      for (const section of navigationData.navbar) {
+        const sectionSlugWarnings = this.validateSectionSlugs(section);
+        warnings.push(...sectionSlugWarnings);
+      }
     }
 
     this.logger.info('Content validation completed', {
@@ -178,29 +179,33 @@ export class NavigationValidator {
     return { warnings };
   }
 
-  private collectAndCheckSlugs(
-    sections: any[], 
-    slugs: Set<string>
-  ): { warnings: string[] } {
+  private validateSectionSlugs(section: any): string[] {
     const warnings: string[] = [];
-
-    for (const section of sections) {
-      if (section.categories && Array.isArray(section.categories)) {
-        this.checkSlugsInNodes(section.categories, slugs, warnings);
-      }
+    
+    if (!section.categories || !Array.isArray(section.categories)) {
+      return warnings;
     }
-
-    return { warnings };
+    
+    const sectionName = section.documentation || 'unknown';
+    
+    // For unified structure, we check slug uniqueness within the entire section
+    // since the navigation uses unified multilingual documents
+    const slugsInSection = new Set<string>();
+    
+    this.checkSlugsInSection(section.categories, slugsInSection, warnings, sectionName);
+    
+    return warnings;
   }
-
-  private checkSlugsInNodes(nodes: any[], slugs: Set<string>, warnings: string[]) {
+  
+  private checkSlugsInSection(nodes: any[], slugs: Set<string>, warnings: string[], sectionName: string) {
     for (const node of nodes) {
-      if (node.slug) {
+      if (node.slug && node.type === 'markdown') {
+        // Only check slug uniqueness for documents, not categories
         const slugValue = typeof node.slug === 'string' ? node.slug : node.slug.en || Object.values(node.slug)[0];
         
         if (slugValue) {
           if (slugs.has(slugValue)) {
-            warnings.push(`Duplicate slug found: ${slugValue}`);
+            warnings.push(`Duplicate slug '${slugValue}' found in section '${sectionName}'`);
           } else {
             slugs.add(slugValue);
           }
@@ -208,10 +213,11 @@ export class NavigationValidator {
       }
 
       if (node.children && Array.isArray(node.children)) {
-        this.checkSlugsInNodes(node.children, slugs, warnings);
+        this.checkSlugsInSection(node.children, slugs, warnings, sectionName);
       }
     }
   }
+
 
 
   private generateValidationStats(navigationData: NavigationData): ValidationResult['stats'] {
