@@ -247,21 +247,18 @@ export class NavigationValidator {
     let documents = 0;
 
     for (const node of nodes) {
-      if (node.children && Array.isArray(node.children)) {
-        if (node.children.length > 0 && node.children[0].children) {
-          // This is a category with subcategories
-          categories++;
+      if (node.type === 'markdown') {
+        // This is a document (per navigation schema)
+        documents++;
+      } else if (node.type === 'category') {
+        // This is a category (per navigation schema)
+        categories++;
+        if (node.children && Array.isArray(node.children)) {
+          // Recursively count children
           const childStats = this.countSectionNodes(node.children);
           categories += childStats.categories;
           documents += childStats.documents;
-        } else {
-          // This is a category with documents
-          categories++;
-          documents += node.children.length;
         }
-      } else {
-        // This is a document
-        documents++;
       }
     }
 
