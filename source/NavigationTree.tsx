@@ -195,92 +195,79 @@ export const NavigationTree: React.FC<NavigationTreeProps> = ({ navigation, init
         )}
       </Box>
 
-      {/* Main content or overlays */}
-      {showHelp ? (
-        <Box borderStyle="single" borderColor="yellow" padding={1} flexDirection="column">
-          <Text bold color="yellow">Keyboard Shortcuts</Text>
-          <Text> </Text>
-          <Text color="cyan">Navigation:</Text>
-          <Text>  ↑/↓     Navigate items</Text>
-          <Text>  PgUp/Dn Navigate faster</Text>
-          <Text>  Space   Expand/collapse</Text>
-          <Text>  a       Toggle all</Text>
-          <Text> </Text>
-          <Text color="cyan">Language:</Text>
-          <Text>  e       English</Text>
-          <Text>  s       Spanish</Text>
-          <Text>  p       Portuguese</Text>
-          <Text> </Text>
-          <Text color="cyan">Other:</Text>
-          <Text>  h/?     Toggle help</Text>
-          <Text>  i       Toggle stats</Text>
-          <Text>  q/Esc   Quit</Text>
-          <Text> </Text>
-          <Text color="gray">Press h to close help</Text>
-        </Box>
-      ) : showStats ? (
-        <Box borderStyle="single" borderColor="green" padding={1} flexDirection="column">
-          <Text bold color="green">Navigation Statistics</Text>
-          <Text> </Text>
-          <Text>Sections:    {stats.sections}</Text>
-          <Text>Categories:  {stats.totalCategories}</Text>
-          <Text>Documents:   {stats.totalDocuments}</Text>
-          <Text>Max Depth:   {stats.maxDepth} levels</Text>
-          <Text> </Text>
-          <Text>Expanded:    {expandedItems.size} items</Text>
-          <Text>Current:     {selectedIndex + 1} of {items.length}</Text>
-          <Text> </Text>
-          <Text color="gray">Press i to close stats</Text>
-        </Box>
-      ) : (
-        <>
-          {/* Tree view */}
-          <Box flexDirection="column" height={maxVisibleItems}>
-            {visibleItems.map((item, visualIndex) => {
-              const actualIndex = scrollOffset + visualIndex;
-              const isSelected = actualIndex === selectedIndex;
-              const isExpanded = expandedItems.has(item.id);
-              const indent = '  '.repeat(item.depth);
-              
-              let icon = '';
-              if (item.type === 'section') {
-                icon = item.hasChildren ? (isExpanded ? '📂 ' : '📁 ') : '📄 ';
-              } else if (item.type === 'category') {
-                icon = item.hasChildren ? (isExpanded ? '▼ ' : '▶ ') : '• ';
-              } else {
-                icon = '📄 ';
-              }
-              
-              const color = isSelected ? 'cyan' : 
-                           item.type === 'section' ? 'yellow' :
-                           item.type === 'document' ? 'green' : 'white';
+      {/* Tree view */}
+      <Box flexDirection="column" height={showHelp || showStats ? maxVisibleItems - 8 : maxVisibleItems}>
+        {visibleItems.map((item, visualIndex) => {
+          const actualIndex = scrollOffset + visualIndex;
+          const isSelected = actualIndex === selectedIndex;
+          const isExpanded = expandedItems.has(item.id);
+          const indent = '  '.repeat(item.depth);
+          
+          let icon = '';
+          if (item.type === 'section') {
+            icon = item.hasChildren ? (isExpanded ? '📂 ' : '📁 ') : '📄 ';
+          } else if (item.type === 'category') {
+            icon = item.hasChildren ? (isExpanded ? '▼ ' : '▶ ') : '• ';
+          } else {
+            icon = '📄 ';
+          }
+          
+          const color = isSelected ? 'cyan' : 
+                       item.type === 'section' ? 'yellow' :
+                       item.type === 'document' ? 'green' : 'white';
 
-              const itemText = item.hasChildren 
-                ? `${item.name} (${item.childCount})`
-                : item.name;
+          const itemText = item.hasChildren 
+            ? `${item.name} (${item.childCount})`
+            : item.name;
 
-              return (
-                <Box key={item.id}>
-                  <Text color={isSelected ? 'cyan' : 'gray'}>
-                    {isSelected ? '▶' : ' '}
-                  </Text>
-                  <Text color={color}>
-                    {' '}{indent}{icon}{itemText}
-                  </Text>
-                </Box>
-              );
-            })}
-          </Box>
-
-          {/* Scroll indicator */}
-          {items.length > maxVisibleItems && (
-            <Box marginTop={1}>
-              <Text color="gray">
-                [{scrollOffset + 1}-{Math.min(scrollOffset + maxVisibleItems, items.length)} of {items.length}]
+          return (
+            <Box key={item.id}>
+              <Text color={isSelected ? 'cyan' : 'gray'}>
+                {isSelected ? '▶' : ' '}
+              </Text>
+              <Text color={color}>
+                {' '}{indent}{icon}{itemText}
               </Text>
             </Box>
-          )}
-        </>
+          );
+        })}
+      </Box>
+
+      {/* Scroll indicator */}
+      {items.length > maxVisibleItems && !showHelp && !showStats && (
+        <Box marginTop={1}>
+          <Text color="gray">
+            [{scrollOffset + 1}-{Math.min(scrollOffset + maxVisibleItems, items.length)} of {items.length}]
+          </Text>
+        </Box>
+      )}
+
+      {/* Help panel */}
+      {showHelp && (
+        <Box borderStyle="single" borderColor="yellow" paddingX={1} marginTop={1} flexDirection="column">
+          <Box flexDirection="row">
+            <Text color="cyan">Nav:</Text>
+            <Text> ↑↓/PgUp/Dn/Space/a </Text>
+            <Text color="cyan">Lang:</Text>
+            <Text> e/s/p </Text>
+            <Text color="cyan">Other:</Text>
+            <Text> h/i/q </Text>
+            <Text color="gray">[h to close]</Text>
+          </Box>
+        </Box>
+      )}
+
+      {/* Stats panel */}
+      {showStats && (
+        <Box borderStyle="single" borderColor="green" paddingX={1} marginTop={1} flexDirection="column">
+          <Box flexDirection="row">
+            <Text>Sections: {stats.sections} </Text>
+            <Text>Categories: {stats.totalCategories} </Text>
+            <Text>Docs: {stats.totalDocuments} </Text>
+            <Text>Depth: {stats.maxDepth} </Text>
+            <Text color="gray">[i to close]</Text>
+          </Box>
+        </Box>
       )}
 
       {/* Footer */}
@@ -291,9 +278,7 @@ export const NavigationTree: React.FC<NavigationTreeProps> = ({ navigation, init
         paddingX={1}
       >
         <Text color="gray">
-          {showHelp || showStats 
-            ? 'Press key to return' 
-            : '↑↓ Nav • Space: Expand • h: Help • i: Stats • q: Quit'}
+          ↑↓ Nav • Space: Expand • h: Help • i: Stats • q: Quit
         </Text>
       </Box>
 
