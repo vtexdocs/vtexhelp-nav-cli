@@ -94,10 +94,25 @@ export const NavigationTree: React.FC<NavigationTreeProps> = ({ navigation, init
     return flatItems;
   }, [navigation, expandedItems, currentLanguage]);
 
+  const selectedItem = items[selectedIndex];
+  
   // Handle terminal size for scrolling
   const terminalHeight = process.stdout.rows || 30;
-  const reservedLines = showHelp ? 20 : showStats ? 12 : 8; // Reserve space for panels
-  const maxVisibleItems = Math.max(5, terminalHeight - reservedLines);
+  
+  // Calculate space used by fixed elements
+  const headerLines = 3; // Header with border
+  const footerLines = 3; // Footer with border
+  const scrollIndicatorLines = items.length > 20 ? 2 : 0;
+  const breadcrumbLines = selectedItem && selectedItem.depth > 0 && !showHelp && !showStats ? 2 : 0;
+  
+  // Calculate space for panels
+  const helpPanelLines = showHelp ? 11 : 0; // Help panel height
+  const statsPanelLines = showStats ? 10 : 0; // Stats panel height
+  
+  // Calculate available space for tree view
+  const usedLines = headerLines + footerLines + helpPanelLines + statsPanelLines + scrollIndicatorLines + breadcrumbLines;
+  const maxVisibleItems = Math.max(5, terminalHeight - usedLines);
+  
   const scrollOffset = Math.max(0, Math.min(selectedIndex - maxVisibleItems + 1, items.length - maxVisibleItems));
   const visibleItems = items.slice(scrollOffset, scrollOffset + maxVisibleItems);
 
@@ -172,8 +187,6 @@ export const NavigationTree: React.FC<NavigationTreeProps> = ({ navigation, init
       exit();
     }
   });
-
-  const selectedItem = items[selectedIndex];
 
   return (
     <Box flexDirection="column">
