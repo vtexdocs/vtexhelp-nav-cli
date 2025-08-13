@@ -3,7 +3,7 @@ import { Command } from 'commander';
 import React from 'react';
 import {render} from 'ink';
 import App from './app.js';
-import { createGenerateCommand } from './commands/generateCommand.js';
+import { createGenerateCommand, createSimpleGenerateCommand } from './commands/generateCommand.js';
 
 const program = new Command()
   .name('vtexhelp-nav')
@@ -29,7 +29,8 @@ program
     render(<App filePath={options.file} language={options.language} />);
   });
 
-// Add generate command
+// Add generate commands
 program.addCommand(createGenerateCommand());
+program.addCommand(createSimpleGenerateCommand());
 
 program.parse();

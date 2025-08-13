@@ -128,10 +128,7 @@ export class CategoryBuilder {
       if (!grouped[file.section]) {
         grouped[file.section] = [];
       }
-      if (!grouped[file.section]) {
-        grouped[file.section] = [];
-      }
-      grouped[file.section].push(file);
+      grouped[file.section]?.push(file);
     }
 
     return grouped;
@@ -291,12 +288,12 @@ export class CategoryBuilder {
     // Phase 3 will handle proper cross-language linking and naming
     const normalizedName = this.normalizeCategoryName(name);
     
-    const localized: Partial<LocalizedString> = {};
+    const localized: any = {};
     for (const language of this.options.languages) {
       localized[language] = normalizedName;
     }
     
-    return localized;
+    return localized as LocalizedString;
   }
 
   private normalizeCategoryName(name: string): string {

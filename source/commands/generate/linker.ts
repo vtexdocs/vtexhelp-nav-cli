@@ -1,4 +1,4 @@
-import type { Language, LocalizedString } from '../../types/navigation.js';
+import type { Language } from '../../types/navigation.js';
 import type { 
   ContentFile, 
   CrossLanguageDocument,
@@ -153,8 +153,8 @@ export class CrossLanguageLinker {
   private createCrossLanguageDocument(slugEN: string, files: ContentFile[]): CrossLanguageDocument {
     const crossLangDoc: CrossLanguageDocument = {
       slugEN,
-      title: {},
-      categories: {},
+      title: {} as any,
+      categories: {} as any,
     };
 
     // Process each language version

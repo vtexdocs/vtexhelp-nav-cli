@@ -8,7 +8,8 @@ interface Props {
 }
 
 export function ProgressBar({ progress, currentPhase, phases }: Props) {
-  const barWidth = 40;
+  // Dynamic bar width based on available space (roughly 80% of typical terminal width)
+  const barWidth = Math.min(100, Math.max(60, process.stdout.columns ? Math.floor(process.stdout.columns * 0.8) : 80));
   const filledWidth = Math.round((progress / 100) * barWidth);
   const emptyWidth = barWidth - filledWidth;
 
@@ -32,8 +33,8 @@ export function ProgressBar({ progress, currentPhase, phases }: Props) {
           <Text color="gray">{emptyBar}</Text>
         </Box>
 
-        {/* Phase Indicators */}
-        <Box flexDirection="row" flexWrap="wrap" gap={1}>
+        {/* Phase Indicators - Single row with very short names */}
+        <Box flexDirection="row" flexWrap="nowrap" gap={0}>
           {phases.map((phase, index) => {
             let status: 'completed' | 'current' | 'pending' = 'pending';
             
@@ -61,12 +62,24 @@ export function ProgressBar({ progress, currentPhase, phases }: Props) {
                 break;
             }
 
+            // Ultra-short phase names to prevent overflow
+            const shortNames: Record<string, string> = {
+              'Initializing': 'Init',
+              'Directory Scanning': 'Scan',
+              'Category Building': 'Build', 
+              'Cross-language Linking': 'Link',
+              'Navigation Generation': 'Nav',
+              'Special Sections': 'Spec',
+              'Validation': 'Valid',
+              'Complete': 'Done'
+            };
+            
+            const shortName = shortNames[phase] || phase.substring(0, 4);
+
             return (
-              <Box key={phase} marginRight={2}>
-                <Text color={color}>
-                  {icon} {phase.replace(/([A-Z])/g, ' $1').trim()}
-                </Text>
-              </Box>
+              <Text key={phase} color={color}>
+                {icon} {shortName}{index < phases.length - 1 ? '   ' : ''}
+              </Text>
             );
           })}
         </Box>

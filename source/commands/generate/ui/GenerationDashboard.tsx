@@ -24,7 +24,7 @@ const PHASE_ORDER = [
   'Complete'
 ];
 
-export function GenerationDashboard({ stats, logs, showVerbose = false, onExit }: Props) {
+export function GenerationDashboard({ stats, logs, showVerbose = true, onExit }: Props) {
   const { exit } = useApp();
   const [showHelp, setShowHelp] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
@@ -44,10 +44,33 @@ export function GenerationDashboard({ stats, logs, showVerbose = false, onExit }
   });
 
   const currentPhaseIndex = PHASE_ORDER.indexOf(stats.currentPhase);
-  const progress = currentPhaseIndex >= 0 ? (currentPhaseIndex / (PHASE_ORDER.length - 1)) * 100 : 0;
+  // Adjust progress calculation to reach 100% on Complete phase
+  let progress = 0;
+  if (currentPhaseIndex >= 0) {
+    if (stats.currentPhase === 'Complete') {
+      progress = 100;
+    } else {
+      // Calculate progress based on phase completion
+      progress = ((currentPhaseIndex + 0.5) / PHASE_ORDER.length) * 100;
+      // If we're in validation and it's completed, show higher progress
+      if (stats.currentPhase === 'Validation' && logs.some(log => log.message.includes('validation passed'))) {
+        progress = 95; // Near completion
+      }
+    }
+  }
 
   const errorLogs = logs.filter(log => log.level === 'error');
   const warningLogs = logs.filter(log => log.level === 'warn');
+  
+  // Debug: Check if stats show issues but logs are empty (only in development)
+  if (process.env['NODE_ENV'] === 'development' && (stats.errors > 0 || stats.warnings > 0) && errorLogs.length === 0 && warningLogs.length === 0) {
+    console.error('DEBUG: Stats show issues but no error/warning logs found', {
+      statsErrors: stats.errors,
+      statsWarnings: stats.warnings, 
+      totalLogs: logs.length,
+      logLevels: logs.map(l => l.level)
+    });
+  }
 
   return (
     <Box flexDirection="column" height="100%">
@@ -80,12 +103,12 @@ export function GenerationDashboard({ stats, logs, showVerbose = false, onExit }
       {/* Main Content Area */}
       <Box flexDirection="row" height="80%">
         {/* Left Panel - Stats */}
-        <Box width="50%" paddingRight={1}>
+        <Box width="49%" marginRight={1}>
           <StatsPanel stats={stats} />
         </Box>
 
         {/* Right Panel - Logs or Errors */}
-        <Box width="50%" paddingLeft={1}>
+        <Box width="49%" marginLeft={1}>
           {showErrors ? (
             <ErrorSummary 
               errors={errorLogs}
@@ -101,7 +124,7 @@ export function GenerationDashboard({ stats, logs, showVerbose = false, onExit }
                   <Text>
                     {stats.currentFile ? (
                       <>
-                        Processing: <Text color="cyan">{stats.currentFile.split('/').pop()}</Text>
+                        Processing: <Text color="cyan">{stats.currentFile.split('/').pop()?.substring(0, 30) || 'file'}...</Text>
                       </>
                     ) : (
                       <Text color="gray">Waiting for next file...</Text>

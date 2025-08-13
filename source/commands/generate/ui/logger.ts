@@ -14,6 +14,10 @@ export class DualLogger {
   private logs: LogEntry[] = [];
   private statsUpdateCallback?: (stats: GenerationStats) => void;
   private logUpdateCallback?: (entry: LogEntry) => void;
+  private lastUiUpdate = 0;
+  private uiUpdateThrottle = 100; // Update UI max every 100ms
+  private pendingLogs: LogEntry[] = [];
+  private logBatchTimer?: NodeJS.Timeout;
   
   constructor(
     private options: {
@@ -62,6 +66,21 @@ export class DualLogger {
     };
   }
 
+  private getLogPrefix(level: LogLevel): string {
+    switch (level) {
+      case 'error':
+        return '❌';
+      case 'warn':
+        return '⚠️';
+      case 'info':
+        return 'ℹ️';
+      case 'debug':
+        return '🔍';
+      default:
+        return '•';
+    }
+  }
+
   private updateElapsedTime() {
     const elapsed = Date.now() - this.stats.startTime.getTime();
     const seconds = Math.floor(elapsed / 1000);
@@ -87,8 +106,27 @@ export class DualLogger {
     this.updateElapsedTime();
     this.stats.memoryUsage = this.getMemoryUsage();
     
-    if (this.statsUpdateCallback) {
+    // Throttle UI updates to reduce rendering issues
+    const now = Date.now();
+    if (this.statsUpdateCallback && (now - this.lastUiUpdate) > this.uiUpdateThrottle) {
       this.statsUpdateCallback({ ...this.stats });
+      this.lastUiUpdate = now;
+    }
+  }
+
+  private flushPendingLogs() {
+    if (this.pendingLogs.length > 0 && this.logUpdateCallback) {
+      // Always include error/warning logs + most recent 5 logs
+      const errorWarningLogs = this.pendingLogs.filter(log => log.level === 'error' || log.level === 'warn');
+      const recentLogs = this.pendingLogs.slice(-5);
+      
+      // Combine and deduplicate
+      const uniqueLogsToSend = [...errorWarningLogs, ...recentLogs].filter(
+        (log, index, arr) => arr.findIndex(l => l.timestamp === log.timestamp && l.message === log.message) === index
+      );
+      
+      uniqueLogsToSend.forEach(entry => this.logUpdateCallback!(entry));
+      this.pendingLogs = [];
     }
   }
 
@@ -116,17 +154,27 @@ export class DualLogger {
       this.fileStream.write(JSON.stringify(entry) + '\n');
     }
 
-    // Notify UI callback
+    // Batch UI updates for smoother rendering
     if (this.logUpdateCallback) {
-      this.logUpdateCallback(entry);
+      this.pendingLogs.push(entry);
+      
+      // Clear existing timer and set a new one
+      if (this.logBatchTimer) {
+        clearTimeout(this.logBatchTimer);
+      }
+      
+      this.logBatchTimer = setTimeout(() => {
+        this.flushPendingLogs();
+      }, 150); // Batch logs for 150ms before sending to UI
     }
 
     // Console fallback for non-interactive mode
     if (!this.options.interactive) {
-      const timestamp = entry.timestamp.toISOString();
-      const prefix = `[${timestamp}] ${level.toUpperCase()}:`;
-      const contextStr = context ? ` ${JSON.stringify(context)}` : '';
-      console.log(`${prefix} ${message}${contextStr}`);
+      const prefix = this.getLogPrefix(level);
+      if (this.options.verbose || level === 'error' || level === 'warn') {
+        const contextStr = context ? ` ${JSON.stringify(context)}` : '';
+        console.log(`${prefix} ${message}${contextStr}`);
+      }
     }
   }
 
@@ -152,7 +200,10 @@ export class DualLogger {
   }
 
   public setCurrentFile(filePath: string) {
-    this.updateStats({ currentFile: filePath });
+    // Only update file path every 10 files to reduce UI churn
+    if (!this.stats.currentFile || this.stats.processedFiles % 10 === 0) {
+      this.updateStats({ currentFile: filePath });
+    }
   }
 
   public incrementProcessed() {
@@ -198,6 +249,12 @@ export class DualLogger {
   }
 
   public async close() {
+    // Flush any remaining logs before closing
+    if (this.logBatchTimer) {
+      clearTimeout(this.logBatchTimer);
+      this.flushPendingLogs();
+    }
+    
     if (this.fileStream) {
       this.fileStream.end();
       await new Promise<void>(resolve => this.fileStream!.on('close', () => resolve()));

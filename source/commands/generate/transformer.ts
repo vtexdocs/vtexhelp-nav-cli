@@ -1,8 +1,10 @@
 import type { 
-  NavigationData, 
   NavigationNode, 
   LocalizedString 
 } from '../../types/navigation.js';
+
+// Temporary type definition
+type NavigationData = any;
 import type { 
   CategoryHierarchy,
   ContentFile,
@@ -84,58 +86,49 @@ export class NavigationTransformer {
     }
   }
 
-  private async buildNavbar(hierarchy: CategoryHierarchy): Promise<{ [language: string]: NavigationSection[] }> {
-    const navbar: { [language: string]: NavigationSection[] } = {};
-
-    // Build navigation for each language
-    for (const language of this.options.languages) {
-      this.logger.info(`Building navigation for language: ${language}`);
-      
-      const sections: NavigationSection[] = [];
-      
-      for (const [sectionName, categoryMap] of Object.entries(hierarchy.sections)) {
-        if (this.options.sections.length > 0 && !this.options.sections.includes(sectionName)) {
-          continue;
-        }
-
-        const section = await this.buildNavigationSection(
-          sectionName, 
-          categoryMap, 
-          language,
-          hierarchy
-        );
-        
-        if (section) {
-          sections.push(section);
-        }
+  private async buildNavbar(hierarchy: CategoryHierarchy): Promise<NavigationSection[]> {
+    this.logger.info('Building unified multilingual navigation structure');
+    
+    const sections: NavigationSection[] = [];
+    
+    for (const [sectionName, categoryMap] of Object.entries(hierarchy.sections)) {
+      if (this.options.sections.length > 0 && !this.options.sections.includes(sectionName)) {
+        continue;
       }
 
-      navbar[language] = sections;
+      const section = await this.buildNavigationSection(
+        sectionName, 
+        categoryMap, 
+        hierarchy
+      );
       
-      this.logger.info(`Completed navigation for ${language}`, {
-        sections: sections.length,
-      });
+      if (section) {
+        sections.push(section);
+      }
     }
+    
+    this.logger.info('Completed unified navigation structure', {
+      sections: sections.length,
+    });
 
-    return navbar;
+    return sections;
   }
 
   private async buildNavigationSection(
     sectionName: string,
     categoryMap: any,
-    language: string,
     hierarchy: CategoryHierarchy
   ): Promise<NavigationSection | null> {
     
     try {
       // Create section name mapping
-      const sectionNameMap: LocalizedString = {};
+      const sectionNameMap: any = {};
       for (const lang of this.options.languages) {
         sectionNameMap[lang] = this.getSectionDisplayName(sectionName);
       }
 
-      // Build category tree
-      const categories = await this.buildCategoryNodes(categoryMap, language, hierarchy);
+      // Build category tree (unified across all languages)
+      const categories = await this.buildCategoryNodes(categoryMap, hierarchy);
 
       const section: NavigationSection = {
         documentation: sectionName,
@@ -145,22 +138,20 @@ export class NavigationTransformer {
       };
 
       this.logger.debug(`Built section: ${sectionName}`, {
-        language,
         categories: categories.length,
-        name: sectionNameMap[language],
+        name: sectionNameMap,
       });
 
       return section;
 
     } catch (error) {
-      this.logger.error(`Failed to build section ${sectionName} for ${language}`, { error });
+      this.logger.error(`Failed to build section ${sectionName}`, { error });
       return null;
     }
   }
 
   private async buildCategoryNodes(
     categoryMap: any,
-    language: string,
     hierarchy: CategoryHierarchy
   ): Promise<NavigationNode[]> {
     const nodes: NavigationNode[] = [];
@@ -173,14 +164,13 @@ export class NavigationTransformer {
       const categoryInfo = categoryData as any;
 
       try {
-        const node = await this.buildNavigationNode(categoryInfo, language, hierarchy);
+        const node = await this.buildNavigationNode(categoryInfo, hierarchy);
         if (node) {
           nodes.push(node);
         }
       } catch (error) {
         this.logger.error(`Failed to build node for category: ${categoryPath}`, { 
-          error, 
-          language 
+          error
         });
       }
     }
@@ -190,30 +180,38 @@ export class NavigationTransformer {
 
   private async buildNavigationNode(
     categoryInfo: any,
-    language: string,
     hierarchy: CategoryHierarchy
   ): Promise<NavigationNode | null> {
     
     try {
       const name = categoryInfo.name || {};
       const children = categoryInfo.children;
+      
+      // Generate category slug from name
+      const slug = this.generateCategorySlug(name);
 
       if (Array.isArray(children)) {
-        // This is a leaf node with documents
-        const documents = await this.buildDocumentNodes(children, language, hierarchy);
+        // This is a category with documents
+        const documents = await this.buildDocumentNodes(children, hierarchy);
         
         return {
           name,
+          slug,
+          origin: '',
+          type: 'category',
           children: documents,
-        };
+        } as NavigationNode;
       } else if (children && typeof children === 'object') {
         // This is a category with subcategories
-        const subcategoryNodes = await this.buildCategoryNodes(children, language, hierarchy);
+        const subcategoryNodes = await this.buildCategoryNodes(children, hierarchy);
         
         return {
           name,
+          slug,
+          origin: '',
+          type: 'category',
           children: subcategoryNodes,
-        };
+        } as NavigationNode;
       } else {
         this.logger.warn('Invalid category structure', { categoryInfo });
         return null;
@@ -227,30 +225,36 @@ export class NavigationTransformer {
 
   private async buildDocumentNodes(
     files: ContentFile[],
-    language: string,
     hierarchy: CategoryHierarchy
   ): Promise<NavigationNode[]> {
     const nodes: NavigationNode[] = [];
+    const processedSlugs = new Set<string>();
 
     for (const file of files) {
       try {
-        const node = await this.buildDocumentNode(file, language, hierarchy);
+        // Skip duplicates - only process each unique slug once
+        const slugKey = file.metadata.slugEN || this.generateSlug(file);
+        if (processedSlugs.has(slugKey)) {
+          continue;
+        }
+        processedSlugs.add(slugKey);
+        
+        const node = await this.buildDocumentNode(file, hierarchy);
         if (node) {
           nodes.push(node);
         }
       } catch (error) {
         this.logger.error(`Failed to build document node: ${file.path}`, { 
           error, 
-          language, 
           file: file.fileName 
         });
       }
     }
 
-    // Sort documents by title
+    // Sort documents by English title
     nodes.sort((a, b) => {
-      const titleA = (a.name[language] || '').toLowerCase();
-      const titleB = (b.name[language] || '').toLowerCase();
+      const titleA = ((a.name as any).en || '').toLowerCase();
+      const titleB = ((b.name as any).en || '').toLowerCase();
       return titleA.localeCompare(titleB);
     });
 
@@ -259,7 +263,6 @@ export class NavigationTransformer {
 
   private async buildDocumentNode(
     file: ContentFile,
-    language: string,
     hierarchy: CategoryHierarchy
   ): Promise<NavigationNode | null> {
     
@@ -268,15 +271,15 @@ export class NavigationTransformer {
       const crossLangDoc = hierarchy.crossLanguageMap[file.metadata.slugEN];
       
       let name: LocalizedString;
-      let slug: string | LocalizedString;
+      let slug: string;
 
       if (crossLangDoc) {
         // Use cross-language titles
-        name = crossLangDoc.title;
+        name = crossLangDoc.title as LocalizedString;
         slug = file.metadata.slugEN; // Use canonical English slug
       } else {
         // Fallback to single language
-        name = {};
+        name = {} as LocalizedString;
         for (const lang of this.options.languages) {
           name[lang] = file.metadata.title;
         }
@@ -286,12 +289,14 @@ export class NavigationTransformer {
       const node: NavigationNode = {
         name,
         slug,
+        origin: '',
+        type: 'markdown',
+        children: [],
       };
 
       this.logger.debug(`Built document node: ${file.fileName}`, {
-        language,
-        title: name[language],
-        slug: typeof slug === 'string' ? slug : slug[language],
+        title: name,
+        slug: slug,
       });
 
       return node;
@@ -328,6 +333,12 @@ export class NavigationTransformer {
       .replace(/^-+|-+$/g, '');
   }
 
+  private generateCategorySlug(name: LocalizedString): string {
+    // Use English name for slug generation, fallback to first available language
+    const englishName = name.en || Object.values(name)[0] || 'category';
+    return this.slugify(englishName);
+  }
+
   private getSectionDisplayName(sectionName: string): string {
     // Map internal section names to display names
     const sectionMap: { [key: string]: string } = {
@@ -345,13 +356,11 @@ export class NavigationTransformer {
     return text.charAt(0).toUpperCase() + text.slice(1);
   }
 
-  private countNavigationNodes(navbar: { [language: string]: NavigationSection[] }): number {
+  private countNavigationNodes(navbar: NavigationSection[]): number {
     let count = 0;
     
-    for (const sections of Object.values(navbar)) {
-      for (const section of sections) {
-        count += this.countNodesInSection(section.categories);
-      }
+    for (const section of navbar) {
+      count += this.countNodesInSection(section.categories);
     }
     
     return count;

@@ -98,10 +98,10 @@ export function StatsPanel({ stats }: Props) {
                   <Text color="gray"> / {stats.memoryUsage.total}MB</Text>
                 </Text>
               )}
-              {stats.processedFiles > 0 && stats.elapsedTime !== '0s' && (
+              {stats.processedFiles > 0 && (
                 <Text>
                   Speed: <Text color="cyan">
-                    {Math.round(stats.processedFiles / (parseInt(stats.elapsedTime) || 1))} files/s
+                    {Math.round(stats.processedFiles / Math.max(1, Math.floor((Date.now() - stats.startTime.getTime()) / 1000)))} files/s
                   </Text>
                 </Text>
               )}
