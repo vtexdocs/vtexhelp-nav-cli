@@ -73,6 +73,7 @@ export interface GenerationOptions {
   interactive: boolean;
   branch?: string;
   force?: boolean;
+  showWarnings?: boolean;
 }
 
 export interface PhaseSummary {

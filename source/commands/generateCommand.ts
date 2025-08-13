@@ -18,6 +18,7 @@ interface GenerateCommandOptions {
   noInteractive?: boolean;
   branch?: string;
   force?: boolean;
+  showWarnings?: boolean;
 }
 
 export function createGenerateCommand() {
@@ -103,6 +104,7 @@ export function createSimpleGenerateCommand() {
     .option('-b, --branch <branch>', 'Git branch to clone', 'main')
     .option('-f, --force', 'Force overwrite existing content directory', false)
     .option('--log-file <file>', 'Export detailed logs to file')
+    .option('--show-warnings', 'Display detailed analysis of all warnings', false)
     .action(async (options: Omit<GenerateCommandOptions, 'noInteractive'>) => {
       try {
         // Parse language list
@@ -130,6 +132,7 @@ export function createSimpleGenerateCommand() {
           branch: options.branch,
           force: options.force,
           logFile: options.logFile,
+          showWarnings: options.showWarnings,
         });
 
       } catch (error) {

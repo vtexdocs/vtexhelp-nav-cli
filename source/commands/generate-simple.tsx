@@ -15,6 +15,7 @@ export interface GenerateSimpleOptions {
   branch?: string;
   force?: boolean;
   logFile?: string;
+  showWarnings?: boolean;
 }
 
 export default async function generateSimple(options: GenerateSimpleOptions): Promise<void> {
@@ -33,6 +34,7 @@ export default async function generateSimple(options: GenerateSimpleOptions): Pr
     branch: options.branch,
     force: options.force,
     logFile: options.logFile,
+    showWarnings: options.showWarnings,
     interactive: false, // Always non-interactive for simple mode
   };
 

@@ -22,6 +22,7 @@ const DEFAULT_CONTENT_DIR = '.vtexhelp-content';
 export class SimpleNavigationGenerator {
   private options: GenerationOptions;
   private startTime: number;
+  private allWarnings: string[] = [];
 
   constructor(options: Partial<GenerationOptions>) {
     this.options = {
@@ -37,6 +38,7 @@ export class SimpleNavigationGenerator {
       interactive: false, // Always false for simple generator
       branch: options.branch || 'main',
       force: options.force ?? false,
+      showWarnings: options.showWarnings ?? false,
     };
     
     this.startTime = Date.now();
@@ -105,8 +107,17 @@ export class SimpleNavigationGenerator {
         return false;
       }
 
+      // Collect all warnings for display
+      this.collectWarnings(scanResult, validationResult);
+      
       // Print final summary
       this.printFinalSummary(scanResult, validationResult);
+      
+      // Display warnings if requested
+      if (this.options.showWarnings && this.allWarnings.length > 0) {
+        this.displayWarnings();
+      }
+      
       return true;
 
     } catch (error) {
@@ -397,6 +408,62 @@ export class SimpleNavigationGenerator {
     }
     
     console.log('\n' + '='.repeat(60) + '\n');
+  }
+
+  private collectWarnings(scanResult: ScanResult, validationResult: ValidationResult) {
+    // Collect warnings from all phases
+    this.allWarnings = [];
+    
+    // Add scan warnings
+    this.allWarnings.push(...scanResult.stats.warnings.map(w => `[SCAN] ${w}`));
+    
+    // Add validation warnings
+    this.allWarnings.push(...validationResult.warnings.map(w => `[VALIDATION] ${w}`));
+    
+    // Add our own warning about special sections
+    this.allWarnings.push('[GENERATION] Special sections handling not yet implemented');
+  }
+  
+  private displayWarnings() {
+    console.log('\n' + '⚠️'.repeat(20));
+    console.log('🔍 DETAILED WARNINGS ANALYSIS');
+    console.log('⚠️'.repeat(20));
+    
+    console.log(`\n📊 Total Warnings: ${this.allWarnings.length}\n`);
+    
+    // Group warnings by type
+    const groupedWarnings = this.groupWarningsByType(this.allWarnings);
+    
+    for (const [type, warnings] of Object.entries(groupedWarnings)) {
+      console.log(`📋 ${type} (${warnings.length} warnings):`);
+      warnings.slice(0, 10).forEach((warning, i) => {
+        console.log(`  ${i + 1}. ${warning.replace(`[${type}] `, '')}`);
+      });
+      
+      if (warnings.length > 10) {
+        console.log(`  ... and ${warnings.length - 10} more ${type.toLowerCase()} warnings`);
+      }
+      console.log('');
+    }
+    
+    console.log('💡 Tip: Use --report to generate a detailed markdown report with all warnings');
+    console.log('⚠️'.repeat(20) + '\n');
+  }
+  
+  private groupWarningsByType(warnings: string[]): { [key: string]: string[] } {
+    const grouped: { [key: string]: string[] } = {};
+    
+    for (const warning of warnings) {
+      const match = warning.match(/^\[([A-Z]+)\]/);
+      const type = match?.[1] ?? 'OTHER';
+      
+      if (!grouped[type]) {
+        grouped[type] = [];
+      }
+      grouped[type].push(warning);
+    }
+    
+    return grouped;
   }
 
   private createSimpleLogger(): any {
