@@ -1,2 +1,12 @@
 node_modules
 dist
+
+# Environment variables
+.env
+.env.local
+
+# Navigation data
+navigation.json
+
+# Cloned content repository
+.vtexhelp-content
