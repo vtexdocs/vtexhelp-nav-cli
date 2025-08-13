@@ -3,10 +3,23 @@ import { render } from 'ink';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { execa } from 'execa';
-import type { GenerationOptions, GenerationStats, LogEntry, ScanResult } from './types.js';
+import type { 
+  GenerationOptions, 
+  GenerationStats, 
+  LogEntry, 
+  ScanResult,
+  CategoryHierarchy,
+  ContentFile,
+  ValidationResult 
+} from './types.js';
+import type { Navigation } from '../../types/navigation.js';
 import { DualLogger } from './ui/logger.js';
 import { GenerationDashboard } from './ui/GenerationDashboard.js';
 import { ContentScanner } from './scanner.js';
+import { CategoryBuilder } from './categorizer.js';
+import { CrossLanguageLinker } from './linker.js';
+import { NavigationTransformer } from './transformer.js';
+import { NavigationValidator } from './validator.js';
 
 const CONTENT_REPO_URL = 'https://github.com/vtexdocs/help-center-content.git';
 const DEFAULT_CONTENT_DIR = '.vtexhelp-content';
@@ -79,60 +92,44 @@ export class NavigationGenerator {
         return false;
       }
 
-      // Phase 2: Build category hierarchy (placeholder for now)
-      this.logger.startPhase('Category Building');
-      await this.sleep(1000); // Simulate work
-      this.logger.completePhase('Category Building', {
-        phase: 'Category Building',
-        duration: 1000,
-        filesProcessed: scanResult.files.length,
-        errors: [],
-        warnings: [],
-      });
+      // Phase 2: Build category hierarchy
+      const hierarchy = await this.buildCategoryHierarchy(scanResult.files);
+      if (!hierarchy) {
+        this.logger.error('Category hierarchy building failed');
+        return false;
+      }
 
-      // Phase 3: Cross-language linking (placeholder for now)
-      this.logger.startPhase('Cross-language Linking');
-      await this.sleep(800);
-      this.logger.completePhase('Cross-language Linking', {
-        phase: 'Cross-language Linking',
-        duration: 800,
-        filesProcessed: scanResult.files.length,
-        errors: [],
-        warnings: [],
-      });
+      // Phase 3: Cross-language linking
+      const linkedHierarchy = await this.linkCrossLanguageDocuments(scanResult.files, hierarchy);
+      if (!linkedHierarchy) {
+        this.logger.error('Cross-language linking failed');
+        return false;
+      }
 
-      // Phase 4: Navigation generation (placeholder for now)
-      this.logger.startPhase('Navigation Generation');
-      await this.sleep(500);
-      this.logger.completePhase('Navigation Generation', {
-        phase: 'Navigation Generation',
-        duration: 500,
-        filesProcessed: 1, // One navigation file generated
-        errors: [],
-        warnings: [],
-      });
+      // Phase 4: Navigation generation
+      const navigationData = await this.transformToNavigation(linkedHierarchy);
+      if (!navigationData) {
+        this.logger.error('Navigation transformation failed');
+        return false;
+      }
 
-      // Phase 5: Special sections (placeholder for now)
+      // Phase 5: Special sections (placeholder - can be implemented later)
       this.logger.startPhase('Special Sections');
-      await this.sleep(300);
+      await this.sleep(100); // Quick placeholder
       this.logger.completePhase('Special Sections', {
         phase: 'Special Sections',
-        duration: 300,
+        duration: 100,
         filesProcessed: 0,
         errors: [],
-        warnings: [],
+        warnings: ['Special sections handling not yet implemented'],
       });
 
-      // Phase 6: Validation (placeholder for now)
-      this.logger.startPhase('Validation');
-      await this.sleep(200);
-      this.logger.completePhase('Validation', {
-        phase: 'Validation',
-        duration: 200,
-        filesProcessed: 1,
-        errors: [],
-        warnings: [],
-      });
+      // Phase 6: Validation and output
+      const validationResult = await this.validateAndOutput(navigationData);
+      if (!validationResult) {
+        this.logger.error('Validation failed');
+        return false;
+      }
 
       // Complete
       this.logger.startPhase('Complete');
@@ -140,6 +137,8 @@ export class NavigationGenerator {
         totalFiles: scanResult.files.length,
         output: this.options.output,
         duration: this.stats.elapsedTime,
+        validationPassed: validationResult.valid,
+        warnings: validationResult.warnings.length,
       });
 
       // Wait for user to exit in interactive mode
@@ -289,6 +288,142 @@ export class NavigationGenerator {
         },
       })
     );
+  }
+
+  private async buildCategoryHierarchy(files: ContentFile[]): Promise<CategoryHierarchy | null> {
+    try {
+      const categoryBuilder = new CategoryBuilder(this.logger, this.options);
+      return await categoryBuilder.buildHierarchy(files);
+    } catch (error) {
+      this.logger.error('Failed to build category hierarchy', { error });
+      return null;
+    }
+  }
+
+  private async linkCrossLanguageDocuments(files: ContentFile[], hierarchy: CategoryHierarchy): Promise<CategoryHierarchy | null> {
+    try {
+      const linker = new CrossLanguageLinker(this.logger, this.options);
+      return await linker.linkDocuments(files, hierarchy);
+    } catch (error) {
+      this.logger.error('Failed to link cross-language documents', { error });
+      return null;
+    }
+  }
+
+  private async transformToNavigation(hierarchy: CategoryHierarchy): Promise<NavigationData | null> {
+    try {
+      const transformer = new NavigationTransformer(this.logger, this.options);
+      return await transformer.transformToNavigation(hierarchy);
+    } catch (error) {
+      this.logger.error('Failed to transform to navigation', { error });
+      return null;
+    }
+  }
+
+  private async validateAndOutput(navigationData: NavigationData): Promise<ValidationResult | null> {
+    try {
+      // Validate navigation
+      const validator = new NavigationValidator(this.logger, this.options);
+      const validationResult = await validator.validateNavigation(navigationData);
+      
+      // Write navigation file
+      await this.writeNavigationFile(navigationData);
+      
+      // Generate report if requested
+      if (this.options.report) {
+        await this.generateReport(validationResult, navigationData);
+      }
+      
+      return validationResult;
+    } catch (error) {
+      this.logger.error('Failed to validate and output navigation', { error });
+      return null;
+    }
+  }
+
+  private async writeNavigationFile(navigationData: NavigationData): Promise<void> {
+    try {
+      const outputPath = path.resolve(this.options.output);
+      const jsonContent = JSON.stringify(navigationData, null, 2);
+      
+      await fs.writeFile(outputPath, jsonContent, 'utf8');
+      
+      this.logger.info('Navigation file written successfully', {
+        path: outputPath,
+        size: jsonContent.length,
+      });
+    } catch (error) {
+      this.logger.error('Failed to write navigation file', { error, path: this.options.output });
+      throw error;
+    }
+  }
+
+  private async generateReport(validationResult: ValidationResult, navigationData: NavigationData): Promise<void> {
+    try {
+      const reportPath = this.options.output.replace('.json', '-report.md');
+      
+      const report = this.buildMarkdownReport(validationResult, navigationData);
+      
+      await fs.writeFile(reportPath, report, 'utf8');
+      
+      this.logger.info('Report generated', {
+        path: reportPath,
+        valid: validationResult.valid,
+        errors: validationResult.errors.length,
+        warnings: validationResult.warnings.length,
+      });
+    } catch (error) {
+      this.logger.error('Failed to generate report', { error });
+    }
+  }
+
+  private buildMarkdownReport(validationResult: ValidationResult, navigationData: NavigationData): string {
+    const timestamp = new Date().toISOString();
+    const languages = Object.keys(navigationData.navbar).join(', ');
+    
+    let report = `# Navigation Generation Report\n\n`;
+    report += `**Generated:** ${timestamp}\n`;
+    report += `**Languages:** ${languages}\n`;
+    report += `**Output:** ${this.options.output}\n\n`;
+    
+    // Validation Summary
+    report += `## Validation Summary\n\n`;
+    report += `- **Status:** ${validationResult.valid ? '✅ PASSED' : '❌ FAILED'}\n`;
+    report += `- **Errors:** ${validationResult.errors.length}\n`;
+    report += `- **Warnings:** ${validationResult.warnings.length}\n\n`;
+    
+    // Statistics
+    report += `## Statistics\n\n`;
+    report += `- **Total Categories:** ${validationResult.stats.totalCategories}\n`;
+    report += `- **Total Documents:** ${validationResult.stats.totalDocuments}\n`;
+    report += `- **Missing Translations:** ${validationResult.stats.missingTranslations}\n\n`;
+    
+    // Language Coverage
+    report += `### Language Coverage\n\n`;
+    for (const [lang, count] of Object.entries(validationResult.stats.languageCoverage)) {
+      const percentage = validationResult.stats.totalDocuments > 0 
+        ? Math.round((count / validationResult.stats.totalDocuments) * 100)
+        : 0;
+      report += `- **${lang.toUpperCase()}:** ${count} documents (${percentage}%)\n`;
+    }
+    
+    // Errors
+    if (validationResult.errors.length > 0) {
+      report += `\n## Errors\n\n`;
+      validationResult.errors.forEach(error => {
+        report += `- ❌ ${error}\n`;
+      });
+    }
+    
+    // Warnings
+    if (validationResult.warnings.length > 0) {
+      report += `\n## Warnings\n\n`;
+      validationResult.warnings.forEach(warning => {
+        report += `- ⚠️ ${warning}\n`;
+      });
+    }
+    
+    return report;
   }
 
   private sleep(ms: number): Promise<void> {

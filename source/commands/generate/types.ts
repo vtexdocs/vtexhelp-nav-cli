@@ -39,8 +39,8 @@ export interface CrossLanguageDocument {
   es?: ContentFile;
   pt?: ContentFile;
   slugEN: string;
-  title: LocalizedString;
-  categories: LocalizedString;
+  title: Partial<LocalizedString>;
+  categories: Partial<LocalizedString>;
 }
 
 export interface GenerationStats {
@@ -132,5 +132,6 @@ export interface CategoryHierarchy {
     totalCategories: number;
     totalDocuments: number;
     languageCoverage: { [lang: string]: number };
+    missingTranslations?: number;
   };
 }
