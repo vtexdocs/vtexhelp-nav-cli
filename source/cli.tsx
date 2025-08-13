@@ -1,47 +1,35 @@
 #!/usr/bin/env node
+import { Command } from 'commander';
 import React from 'react';
 import {render} from 'ink';
-import meow from 'meow';
 import App from './app.js';
+import { createGenerateCommand } from './commands/generateCommand.js';
 
-const cli = meow(
-	`
-		Usage
-		  $ vtexhelp-nav
+const program = new Command()
+  .name('vtexhelp-nav')
+  .description('VTEX Help Center Navigation CLI')
+  .version('1.0.0');
 
-		Options
-			--file, -f     Path to navigation.json file
-			--language, -l Language to use (en, es, pt) [default: en]
-			--help         Show help
+// View command (default)
+program
+  .command('view', { isDefault: true })
+  .description('View navigation tree')
+  .option('-f, --file <path>', 'Path to navigation.json file')
+  .option('-l, --language <lang>', 'Language to use (en, es, pt)', 'en')
+  .addHelpText('after', `
+  Keyboard Shortcuts:
+    ↑/↓       Navigate items
+    Space     Expand/collapse
+    e/s/p     Switch language (English/Spanish/Portuguese)
+    h         Show help
+    i         Show statistics
+    q         Quit
+  `)
+  .action((options) => {
+    render(<App filePath={options.file} language={options.language} />);
+  });
 
-		Examples
-		  $ vtexhelp-nav
-		  $ vtexhelp-nav --file ./custom-navigation.json
-		  $ vtexhelp-nav --language es
-		  $ vtexhelp-nav -f ./nav.json -l pt
+// Add generate command
+program.addCommand(createGenerateCommand());
 
-		Keyboard Shortcuts:
-		  ↑/↓       Navigate items
-		  Space     Expand/collapse
-		  e/s/p     Switch language (English/Spanish/Portuguese)
-		  h         Show help
-		  i         Show statistics
-		  q         Quit
-	`,
-	{
-		importMeta: import.meta,
-		flags: {
-			file: {
-				type: 'string',
-				shortFlag: 'f',
-			},
-			language: {
-				type: 'string',
-				shortFlag: 'l',
-				default: 'en',
-			},
-		},
-	},
-);
-
-render(<App filePath={cli.flags.file} language={cli.flags.language} />);
+program.parse();
