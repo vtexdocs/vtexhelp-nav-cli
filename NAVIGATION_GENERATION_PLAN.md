@@ -166,7 +166,100 @@ generate
   --fix                  // Auto-fix common issues
   --languages <langs>    // Languages to process (default: all)
   --sections <sections>  // Sections to process (default: all)
+  --log-file <file>      // Export detailed logs to file (optional)
+  --verbose              // Show detailed log lines in terminal
 ```
+
+## Interactive Logging with Ink
+
+The generate command will use Ink to provide an interactive, real-time logging experience during generation:
+
+### Interactive UI Components
+
+```typescript
+interface GenerationStats {
+  totalFiles: number;
+  processedFiles: number;
+  errors: number;
+  warnings: number;
+  currentPhase: string;
+  currentFile: string;
+  languages: { [lang: string]: number };
+  sections: { [section: string]: number };
+  startTime: Date;
+  elapsedTime: string;
+}
+```
+
+### Logging Architecture
+
+1. **Interactive Display (Default)**:
+   - Real-time statistics dashboard using Ink components
+   - Progress bars for each phase
+   - Live counters for files, errors, warnings
+   - Current processing status
+   - Memory usage and performance metrics
+   - Color-coded status indicators
+
+2. **Log File Output (--log-file)**:
+   - Structured JSON lines format for machine parsing
+   - Includes timestamps, levels, context
+   - Can be tailed in another terminal for monitoring
+   - Preserves full stack traces and debug info
+
+3. **Verbose Mode (--verbose)**:
+   - Shows detailed log lines below the stats dashboard
+   - Scrollable log viewer with Ink
+   - Filterable by log level (debug, info, warn, error)
+   - Search functionality for finding specific entries
+
+### Implementation Structure
+
+```typescript
+// source/commands/generate/ui/
+├── GenerationDashboard.tsx  // Main Ink component
+├── StatsPanel.tsx           // Statistics display
+├── ProgressBar.tsx          // Phase progress
+├── LogViewer.tsx            // Scrollable log display
+├── ErrorSummary.tsx         // Error/warning details
+└── logger.ts                // Dual-output logger (Ink + file)
+```
+
+### Logger Integration
+
+```typescript
+class DualLogger {
+  private fileStream?: WriteStream;
+  private inkLogger: InkLogger;
+  
+  constructor(options: {
+    logFile?: string;
+    verbose: boolean;
+    interactive: boolean;
+  });
+  
+  // Methods for both Ink UI updates and file logging
+  updateStats(stats: Partial<GenerationStats>): void;
+  log(level: LogLevel, message: string, context?: any): void;
+  startPhase(phase: string): void;
+  completePhase(phase: string, summary: PhaseSummary): void;
+}
+```
+
+### User Experience Flow
+
+1. **Standard Run**: Shows clean, animated statistics dashboard
+2. **With --log-file**: Same UI, but also writes detailed logs to file
+3. **With --verbose**: Adds scrollable log panel below stats
+4. **With --no-interactive**: Falls back to simple console output (for CI/CD)
+
+### Benefits
+
+- **Real-time Feedback**: Users see progress without cluttering terminal
+- **Debugging Support**: Full logs available when needed
+- **CI/CD Compatible**: Can disable interactive mode for automation
+- **Performance Monitoring**: Track generation speed and bottlenecks
+- **Error Investigation**: Detailed context for troubleshooting
 
 ## Key Challenges & Solutions
 
