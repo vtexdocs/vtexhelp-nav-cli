@@ -38,7 +38,7 @@ export function loadSectionsConfig(): SectionsConfiguration {
   } catch (error) {
     // Fallback to hardcoded configuration if file loading fails
     console.warn('Failed to load sections config file, using fallback configuration:', error);
-    
+
     cachedConfig = {
       sections: {
         tracks: {
@@ -67,7 +67,7 @@ export function loadSectionsConfig(): SectionsConfiguration {
         }
       }
     };
-    
+
     return cachedConfig;
   }
 }
@@ -82,7 +82,7 @@ export function getSectionDisplayName(sectionName: string, language: string = 'e
   if (config && config.displayName[language as keyof LocalizedDisplayName]) {
     return config.displayName[language as keyof LocalizedDisplayName];
   }
-  
+
   // Fallback to capitalized section name
   return sectionName.charAt(0).toUpperCase() + sectionName.slice(1);
 }
@@ -92,7 +92,21 @@ export function getSectionSlugPrefix(sectionName: string): string {
   if (config) {
     return config.slugPrefix;
   }
-  
+
   // Fallback to section name as prefix
   return sectionName;
+}
+
+export function getSupportedSections(): string[] {
+  const config = loadSectionsConfig();
+  return Object.keys(config.sections);
+}
+
+export function getSupportedLanguages(): string[] {
+  const config = loadSectionsConfig();
+  const languages = new Set<string>();
+  for (const section of Object.values(config.sections)) {
+    Object.keys(section.displayName).forEach(lang => languages.add(lang));
+  }
+  return Array.from(languages);
 }
