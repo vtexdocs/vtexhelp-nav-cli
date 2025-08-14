@@ -7,8 +7,10 @@ A comprehensive command-line tool for both **generating** and **viewing** VTEX d
 ### 🏗️ Navigation Generation
 - 🤖 **Intelligent Generation**: Automatically generates navigation from VTEX Help Center content repository
 - 🎯 **Dual Modes**: Choose between interactive (with UI) or simple (console-only) generation
-- 🌍 **Multi-language Support**: Processes English, Spanish, and Portuguese content
+- 🌍 **Multi-language Support**: Processes English, Spanish, and Portuguese content with proper localized slugs
 - 🔗 **Cross-language Linking**: Automatically links related documents across languages
+- 📝 **Smart Slug Generation**: Prioritizes `legacySlug` → filename-based → empty string for missing translations
+- 🔍 **Intelligent Duplicate Detection**: Only warns about true duplicates (same section + language), not multilingual documents
 - 📊 **Validation & Reports**: Built-in validation with detailed reporting capabilities
 - ⚡ **Performance Optimized**: Simple mode offers ~13% better performance
 
