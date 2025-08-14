@@ -2,16 +2,14 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import matter from 'gray-matter';
 import type { Language } from '../../types/navigation.js';
-import type { 
-  ContentFile, 
-  FrontMatter, 
+import type {
+  ContentFile,
+  FrontMatter,
   ScanResult,
-  GenerationOptions 
+  GenerationOptions
 } from './types.js';
 import { DualLogger } from './ui/logger.js';
-
-const SUPPORTED_LANGUAGES: Language[] = ['en', 'es', 'pt'];
-const SUPPORTED_SECTIONS = ['tutorials', 'tracks', 'faq', 'announcements', 'troubleshooting'];
+import { getSupportedLanguages, getSupportedSections } from '../../config/sections.config.js';
 
 export class ContentScanner {
   private logger: DualLogger;
@@ -24,7 +22,7 @@ export class ContentScanner {
 
   public async scan(): Promise<ScanResult> {
     this.logger.startPhase('Directory Scanning');
-    
+
     const startTime = Date.now();
     const files: ContentFile[] = [];
     const stats = {
@@ -37,7 +35,7 @@ export class ContentScanner {
 
     try {
       const docsPath = path.join(this.options.contentDir, 'docs');
-      
+
       // Check if docs directory exists
       const docsExists = await fs.stat(docsPath).catch(() => false);
       if (!docsExists) {
@@ -49,7 +47,7 @@ export class ContentScanner {
 
       // Scan each language directory
       for (const language of this.options.languages) {
-        if (!SUPPORTED_LANGUAGES.includes(language)) {
+        if (!getSupportedLanguages().includes(language)) {
           const warning = `Skipping unsupported language: ${language}`;
           stats.warnings.push(warning);
           this.logger.warn(warning);
@@ -58,7 +56,7 @@ export class ContentScanner {
 
         const langPath = path.join(docsPath, language);
         const langExists = await fs.stat(langPath).catch(() => false);
-        
+
         if (!langExists) {
           const warning = `Language directory not found: ${language}`;
           stats.warnings.push(warning);
@@ -116,22 +114,22 @@ export class ContentScanner {
 
   private async scanLanguageDirectory(langPath: string, language: Language): Promise<ContentFile[]> {
     const files: ContentFile[] = [];
-    
+
     try {
       const entries = await fs.readdir(langPath, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         if (!entry.isDirectory()) continue;
-        
+
         const section = entry.name;
-        
+
         // Skip sections not in the filter
         if (this.options.sections.length > 0 && !this.options.sections.includes(section)) {
           this.logger.debug(`Skipping section: ${section}`, { language });
           continue;
         }
 
-        if (!SUPPORTED_SECTIONS.includes(section)) {
+        if (!getSupportedSections().includes(section)) {
           this.logger.warn(`Unknown section: ${section}`, { language, section });
           continue;
         }
@@ -150,13 +148,13 @@ export class ContentScanner {
 
   private async scanSectionDirectory(sectionPath: string, language: Language, section: string): Promise<ContentFile[]> {
     const files: ContentFile[] = [];
-    
+
     try {
       await this.walkDirectory(sectionPath, async (filePath) => {
         if (path.extname(filePath) !== '.md') return;
-        
+
         this.logger.setCurrentFile(filePath);
-        
+
         try {
           const contentFile = await this.parseMarkdownFile(filePath, language, section);
           if (contentFile) {
@@ -183,10 +181,10 @@ export class ContentScanner {
   private async walkDirectory(dirPath: string, callback: (filePath: string, stats: any) => Promise<void>) {
     try {
       const entries = await fs.readdir(dirPath, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         const fullPath = path.join(dirPath, entry.name);
-        
+
         if (entry.isDirectory()) {
           await this.walkDirectory(fullPath, callback);
         } else if (entry.isFile()) {
@@ -202,10 +200,10 @@ export class ContentScanner {
     try {
       const content = await fs.readFile(filePath, 'utf8');
       const parsed = matter(content);
-      
+
       // Extract frontmatter
       const frontmatter = parsed.data as FrontMatter;
-      
+
       // Validate required fields
       if (!frontmatter.title || !frontmatter.slugEN) {
         this.logger.warn(`Missing required frontmatter fields in: ${filePath}`, {
@@ -226,7 +224,7 @@ export class ContentScanner {
       // Extract category from path
       const relativePath = path.relative(path.join(this.options.contentDir, 'docs', language, section), filePath);
       const pathParts = path.dirname(relativePath).split(path.sep).filter(part => part !== '.');
-      
+
       const category = pathParts.length > 0 ? pathParts[0] : 'uncategorized';
       const subcategory = pathParts.length > 1 ? pathParts[1] : undefined;
 
