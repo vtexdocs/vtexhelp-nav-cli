@@ -75,6 +75,9 @@ export interface GenerationOptions {
   branch?: string;
   force?: boolean;
   showWarnings?: boolean;
+  // Cross-language linking options
+  linkSimilarTitles?: boolean;
+  linkThreshold?: number;
 }
 
 export interface PhaseSummary {

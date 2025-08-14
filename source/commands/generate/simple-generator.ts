@@ -15,14 +15,17 @@ import { CategoryBuilder } from './categorizer.js';
 import { CrossLanguageLinker } from './linker.js';
 import { NavigationTransformer } from './transformer.js';
 import { NavigationValidator } from './validator.js';
+import { DualLogger } from './ui/logger.js';
 
 const CONTENT_REPO_URL = 'https://github.com/vtexdocs/help-center-content.git';
+const KNOWN_ISSUES_REPO_URL = 'https://github.com/vtexdocs/known-issues.git';
 const DEFAULT_CONTENT_DIR = '.vtexhelp-content';
 
 export class SimpleNavigationGenerator {
   private options: GenerationOptions;
   private startTime: number;
   private allWarnings: string[] = [];
+  private logger: DualLogger;
 
   constructor(options: Partial<GenerationOptions>) {
     this.options = {
@@ -38,10 +41,20 @@ export class SimpleNavigationGenerator {
       interactive: false, // Always false for simple generator
       branch: options.branch || 'main',
       force: options.force ?? false,
-      showWarnings: options.showWarnings ?? false,
+      showWarnings: options.showWarnings ?? false
     };
     
     this.startTime = Date.now();
+    this.logger = new DualLogger(this.options);
+  }
+
+  private shouldIncludeKnownIssues(): boolean {
+    // If no sections filter is specified, include everything (including known-issues)
+    if (!this.options.sections || this.options.sections.length === 0) {
+      return true;
+    }
+    // If sections filter is specified, check if known-issues is included
+    return this.options.sections.includes('known-issues');
   }
 
   private log(level: 'info' | 'warn' | 'error', message: string, context?: any) {
@@ -59,6 +72,9 @@ export class SimpleNavigationGenerator {
       console.log('🚀 VTEX Navigation Generator (Simple Mode)');
       console.log(`📁 Content Directory: ${this.options.contentDir}`);
       console.log(`📄 Output File: ${this.options.output}`);
+      if (this.shouldIncludeKnownIssues()) {
+        console.log('🔧 Known Issues: Enabled');
+      }
       console.log('');
 
       // Phase 0: Ensure content repository is available
@@ -66,6 +82,15 @@ export class SimpleNavigationGenerator {
       if (!contentReady) {
         this.log('error', 'Content repository not available');
         return false;
+      }
+
+      // Phase 0.5: Ensure known-issues repository if enabled
+      if (this.shouldIncludeKnownIssues()) {
+        const knownIssuesReady = await this.ensureKnownIssuesRepository();
+        if (!knownIssuesReady) {
+          this.log('error', 'Known-issues repository not available');
+          return false;
+        }
       }
 
       // Phase 1: Scan directory and parse files
@@ -172,37 +197,63 @@ export class SimpleNavigationGenerator {
     }
   }
 
-  private async scanContent(): Promise<ScanResult | null> {
+  private async ensureKnownIssuesRepository(): Promise<boolean> {
+    this.logPhase('Initializing Known Issues Repository');
+    
+    try {
+      const knownIssuesDir = path.join(path.dirname(this.options.contentDir), '.vtexhelp-known-issues');
+      const absoluteKnownIssuesDir = path.resolve(knownIssuesDir);
+      const dirExists = await fs.stat(absoluteKnownIssuesDir).catch(() => false);
+
+      if (dirExists && !this.options.force) {
+        const docsPath = path.join(absoluteKnownIssuesDir, 'docs');
+        const docsExists = await fs.stat(docsPath).catch(() => false);
+        
+        if (docsExists) {
+          this.log('info', 'Using existing known-issues repository', { path: absoluteKnownIssuesDir });
+          return true;
+        }
+        this.log('warn', 'Known-issues directory exists but no docs found, re-cloning');
+      }
+      
+      if (dirExists) {
+        this.log('info', 'Force flag set, removing existing known-issues directory');
+        await fs.rm(absoluteKnownIssuesDir, { recursive: true, force: true });
+      }
+
+      this.log('info', 'Cloning known-issues repository', {
+        url: KNOWN_ISSUES_REPO_URL,
+        branch: 'main',
+        target: knownIssuesDir
+      });
+
+      await execa('git', [
+        'clone',
+        '--depth', '1',
+        '--branch', 'main',
+        KNOWN_ISSUES_REPO_URL,
+        knownIssuesDir
+      ]);
+
+      this.log('info', 'Known-issues repository cloned successfully');
+      return true;
+
+    } catch (error) {
+      this.log('error', 'Failed to ensure known-issues repository', { error: error instanceof Error ? error.message : error });
+      return false;
+    }
+  }  private async scanContent(): Promise<ScanResult | null> {
     this.logPhase('Scanning Content Directory');
     
     try {
-      // Create a simple logger interface for the scanner
-      const simpleLogger = {
-        info: (msg: string, ctx?: any) => this.log('info', msg, ctx),
-        warn: (msg: string, ctx?: any) => this.log('warn', msg, ctx),
-        error: (msg: string, ctx?: any) => this.log('error', msg, ctx),
-        debug: (msg: string, ctx?: any) => this.options.verbose && this.log('info', `[DEBUG] ${msg}`, ctx),
-        startPhase: (phase: string) => this.logPhase(phase),
-        completePhase: (phase: string, summary: any) => {
-          this.log('info', `Completed ${phase}`, {
-            duration: summary.duration,
-            files: summary.filesProcessed,
-            errors: summary.errors?.length || 0,
-            warnings: summary.warnings?.length || 0
-          });
-        },
-        setCurrentFile: () => {}, // No-op for simple mode
-        incrementProcessed: () => {}, // No-op for simple mode
-        updateLanguageStats: () => {}, // No-op for simple mode
-        updateSectionStats: () => {}, // No-op for simple mode
-        updateStats: () => {}, // No-op for simple mode
-        getStats: () => ({ errors: 0, warnings: 0 }), // Simple stats
-        setStatsUpdateCallback: () => {},
-        setLogUpdateCallback: () => {},
-        close: async () => {}
-      } as any;
+      // Create a proper DualLogger instance for the scanner
+      const logger = new DualLogger({
+        logFile: this.options.logFile,
+        verbose: this.options.verbose,
+        interactive: false // Simple mode is non-interactive
+      });
 
-      const scanner = new ContentScanner(simpleLogger, this.options);
+      const scanner = new ContentScanner(logger, this.options);
       const result = await scanner.scan();
       
       if (result.stats.errors.length > 0) {
@@ -228,8 +279,7 @@ export class SimpleNavigationGenerator {
     this.logPhase('Building Category Hierarchy');
     
     try {
-      const simpleLogger = this.createSimpleLogger();
-      const categoryBuilder = new CategoryBuilder(simpleLogger, this.options);
+      const categoryBuilder = new CategoryBuilder(this.logger, this.options);
       return await categoryBuilder.buildHierarchy(files);
     } catch (error) {
       this.log('error', 'Failed to build category hierarchy', { error: error instanceof Error ? error.message : error });
@@ -241,8 +291,7 @@ export class SimpleNavigationGenerator {
     this.logPhase('Linking Cross-language Documents');
     
     try {
-      const simpleLogger = this.createSimpleLogger();
-      const linker = new CrossLanguageLinker(simpleLogger, this.options);
+      const linker = new CrossLanguageLinker(this.logger, this.options);
       return await linker.linkDocuments(files, hierarchy);
     } catch (error) {
       this.log('error', 'Failed to link cross-language documents', { error: error instanceof Error ? error.message : error });
@@ -254,8 +303,7 @@ export class SimpleNavigationGenerator {
     this.logPhase('Transforming to Navigation Format');
     
     try {
-      const simpleLogger = this.createSimpleLogger();
-      const transformer = new NavigationTransformer(simpleLogger, this.options);
+      const transformer = new NavigationTransformer(this.logger, this.options);
       return await transformer.transformToNavigation(hierarchy);
     } catch (error) {
       this.log('error', 'Failed to transform to navigation', { error: error instanceof Error ? error.message : error });
@@ -267,8 +315,7 @@ export class SimpleNavigationGenerator {
     this.logPhase('Validating and Writing Output');
     
     try {
-      const simpleLogger = this.createSimpleLogger();
-      const validator = new NavigationValidator(simpleLogger, this.options);
+      const validator = new NavigationValidator(this.logger, this.options);
       const validationResult = await validator.validateNavigation(navigationData);
       
       // Write navigation file
@@ -464,33 +511,6 @@ export class SimpleNavigationGenerator {
     }
     
     return grouped;
-  }
-
-  private createSimpleLogger(): any {
-    return {
-      info: (msg: string, ctx?: any) => this.log('info', msg, ctx),
-      warn: (msg: string, ctx?: any) => this.log('warn', msg, ctx),
-      error: (msg: string, ctx?: any) => this.log('error', msg, ctx),
-      debug: (msg: string, ctx?: any) => this.options.verbose && this.log('info', `[DEBUG] ${msg}`, ctx),
-      startPhase: (phase: string) => this.logPhase(phase),
-      completePhase: (phase: string, summary: any) => {
-        this.log('info', `Completed ${phase}`, {
-          duration: summary.duration,
-          files: summary.filesProcessed,
-          errors: summary.errors?.length || 0,
-          warnings: summary.warnings?.length || 0
-        });
-      },
-      setCurrentFile: () => {},
-      incrementProcessed: () => {},
-      updateLanguageStats: () => {},
-      updateSectionStats: () => {},
-      updateStats: () => {},
-      getStats: () => ({ errors: 0, warnings: 0 }),
-      setStatsUpdateCallback: () => {},
-      setLogUpdateCallback: () => {},
-      close: async () => {}
-    };
   }
 }
 

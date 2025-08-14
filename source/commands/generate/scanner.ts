@@ -20,6 +20,15 @@ export class ContentScanner {
     this.options = options;
   }
 
+  private shouldIncludeKnownIssues(): boolean {
+    // If no sections filter is specified, include everything (including known-issues)
+    if (!this.options.sections || this.options.sections.length === 0) {
+      return true;
+    }
+    // If sections filter is specified, check if known-issues is included
+    return this.options.sections.includes('known-issues');
+  }
+
   public async scan(): Promise<ScanResult> {
     this.logger.startPhase('Directory Scanning');
 
@@ -34,46 +43,29 @@ export class ContentScanner {
     };
 
     try {
-      const docsPath = path.join(this.options.contentDir, 'docs');
+      // Scan main content directory
+      const mainFiles = await this.scanContentDirectory(this.options.contentDir, 'main');
+      files.push(...mainFiles.files);
+      this.mergeStats(stats, mainFiles.stats);
 
-      // Check if docs directory exists
-      const docsExists = await fs.stat(docsPath).catch(() => false);
-      if (!docsExists) {
-        const error = `Docs directory not found: ${docsPath}`;
-        stats.errors.push(error);
-        this.logger.error(error);
-        return { files, stats };
-      }
-
-      // Scan each language directory
-      for (const language of this.options.languages) {
-        if (!getSupportedLanguages().includes(language)) {
-          const warning = `Skipping unsupported language: ${language}`;
+      // Scan known-issues directory if enabled
+      if (this.shouldIncludeKnownIssues()) {
+        const knownIssuesPath = path.join(path.dirname(this.options.contentDir), '.vtexhelp-known-issues');
+        const knownIssuesExists = await fs.stat(knownIssuesPath).catch(() => false);
+        
+        if (knownIssuesExists) {
+          this.logger.info('Scanning known-issues repository');
+          const knownIssuesFiles = await this.scanContentDirectory(knownIssuesPath, 'known-issues');
+          files.push(...knownIssuesFiles.files);
+          this.mergeStats(stats, knownIssuesFiles.stats);
+        } else {
+          const warning = `Known issues enabled but directory not found: ${knownIssuesPath}`;
           stats.warnings.push(warning);
           this.logger.warn(warning);
-          continue;
         }
-
-        const langPath = path.join(docsPath, language);
-        const langExists = await fs.stat(langPath).catch(() => false);
-
-        if (!langExists) {
-          const warning = `Language directory not found: ${language}`;
-          stats.warnings.push(warning);
-          this.logger.warn(warning, { language, path: langPath });
-          continue;
-        }
-
-        this.logger.info(`Scanning language: ${language}`, { path: langPath });
-        const langFiles = await this.scanLanguageDirectory(langPath, language);
-        files.push(...langFiles);
-
-        // Update language stats
-        stats.byLanguage[language] = langFiles.length;
-        this.logger.updateLanguageStats(language, langFiles.length);
       }
 
-      // Calculate section stats
+      // Calculate section stats for all files
       for (const file of files) {
         stats.bySection[file.section] = (stats.bySection[file.section] || 0) + 1;
       }
@@ -112,7 +104,7 @@ export class ContentScanner {
     }
   }
 
-  private async scanLanguageDirectory(langPath: string, language: Language): Promise<ContentFile[]> {
+  private async scanLanguageDirectory(langPath: string, language: Language, contentDir: string): Promise<ContentFile[]> {
     const files: ContentFile[] = [];
 
     try {
@@ -136,7 +128,7 @@ export class ContentScanner {
 
         this.logger.debug(`Scanning section: ${section}`, { language, section });
         const sectionPath = path.join(langPath, section);
-        const sectionFiles = await this.scanSectionDirectory(sectionPath, language, section);
+        const sectionFiles = await this.scanSectionDirectory(sectionPath, language, section, contentDir);
         files.push(...sectionFiles);
       }
     } catch (error) {
@@ -146,7 +138,7 @@ export class ContentScanner {
     return files;
   }
 
-  private async scanSectionDirectory(sectionPath: string, language: Language, section: string): Promise<ContentFile[]> {
+  private async scanSectionDirectory(sectionPath: string, language: Language, section: string, contentDir: string): Promise<ContentFile[]> {
     const files: ContentFile[] = [];
 
     try {
@@ -156,7 +148,7 @@ export class ContentScanner {
         this.logger.setCurrentFile(filePath);
 
         try {
-          const contentFile = await this.parseMarkdownFile(filePath, language, section);
+          const contentFile = await this.parseMarkdownFile(filePath, language, section, contentDir);
           if (contentFile) {
             files.push(contentFile);
             this.logger.incrementProcessed();
@@ -196,7 +188,7 @@ export class ContentScanner {
     }
   }
 
-  private async parseMarkdownFile(filePath: string, language: Language, section: string): Promise<ContentFile | null> {
+  private async parseMarkdownFile(filePath: string, language: Language, section: string, contentDir: string): Promise<ContentFile | null> {
     try {
       const content = await fs.readFile(filePath, 'utf8');
       const parsed = matter(content);
@@ -222,7 +214,7 @@ export class ContentScanner {
       }
 
       // Extract category from path
-      const relativePath = path.relative(path.join(this.options.contentDir, 'docs', language, section), filePath);
+      const relativePath = path.relative(path.join(contentDir, 'docs', language, section), filePath);
       const pathParts = path.dirname(relativePath).split(path.sep).filter(part => part !== '.');
 
       const category = pathParts.length > 0 ? pathParts[0] : 'uncategorized';
@@ -256,5 +248,91 @@ export class ContentScanner {
       .split('-')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+  }
+
+  /**
+   * Scan a specific content directory (main content or external repos)
+   */
+  private async scanContentDirectory(contentDir: string, source: string): Promise<ScanResult> {
+    const files: ContentFile[] = [];
+    const stats = {
+      totalFiles: 0,
+      byLanguage: {} as { [lang: string]: number },
+      bySection: {} as { [section: string]: number },
+      errors: [] as string[],
+      warnings: [] as string[],
+    };
+
+    try {
+      const docsPath = path.join(contentDir, 'docs');
+
+      // Check if docs directory exists
+      const docsExists = await fs.stat(docsPath).catch(() => false);
+      if (!docsExists) {
+        const error = `Docs directory not found: ${docsPath} (source: ${source})`;
+        stats.errors.push(error);
+        this.logger.error(error);
+        return { files, stats };
+      }
+
+      // Scan each language directory
+      for (const language of this.options.languages) {
+        if (!getSupportedLanguages().includes(language)) {
+          const warning = `Skipping unsupported language: ${language} (source: ${source})`;
+          stats.warnings.push(warning);
+          this.logger.warn(warning);
+          continue;
+        }
+
+        const langPath = path.join(docsPath, language);
+        const langExists = await fs.stat(langPath).catch(() => false);
+
+        if (!langExists) {
+          const warning = `Language directory not found: ${language} (source: ${source})`;
+          stats.warnings.push(warning);
+          this.logger.warn(warning, { language, path: langPath, source });
+          continue;
+        }
+
+        this.logger.info(`Scanning language: ${language} (source: ${source})`, { path: langPath });
+        const langFiles = await this.scanLanguageDirectory(langPath, language, contentDir);
+        files.push(...langFiles);
+
+        // Update language stats
+        stats.byLanguage[language] = (stats.byLanguage[language] || 0) + langFiles.length;
+        this.logger.updateLanguageStats(language, langFiles.length);
+      }
+
+      stats.totalFiles = files.length;
+      return { files, stats };
+
+    } catch (error) {
+      const errorMessage = `Failed to scan content directory: ${contentDir} (source: ${source}) - ${error}`;
+      stats.errors.push(errorMessage);
+      this.logger.error(errorMessage, { error, source });
+      return { files, stats };
+    }
+  }
+
+  /**
+   * Merge statistics from multiple scan results
+   */
+  private mergeStats(target: ScanResult['stats'], source: ScanResult['stats']): void {
+    // Merge totals
+    target.totalFiles += source.totalFiles;
+
+    // Merge language stats
+    for (const [lang, count] of Object.entries(source.byLanguage)) {
+      target.byLanguage[lang] = (target.byLanguage[lang] || 0) + count;
+    }
+
+    // Merge section stats
+    for (const [section, count] of Object.entries(source.bySection)) {
+      target.bySection[section] = (target.bySection[section] || 0) + count;
+    }
+
+    // Merge errors and warnings
+    target.errors.push(...source.errors);
+    target.warnings.push(...source.warnings);
   }
 }

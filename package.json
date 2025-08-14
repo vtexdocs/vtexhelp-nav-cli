@@ -2,15 +2,22 @@
 	"name": "vtexhelp-nav-cli",
 	"version": "0.0.0",
 	"license": "MIT",
-	"bin": "dist/cli.js",
+	"bin": {
+		"vtexhelp-nav-cli": "dist/cli.js",
+		"vtex-nav": "dist/cli.js"
+	},
 	"type": "module",
 	"engines": {
 		"node": ">=16"
 	},
 	"scripts": {
-		"build": "tsc && cp -r source/config/*.json dist/config/",
+		"build": "tsc && cp -r source/config/*.json dist/config/ && chmod +x dist/cli.js",
 		"dev": "tsc --watch",
-		"test": "prettier --check . && xo && ava"
+		"test": "prettier --check . && xo && ava",
+		"start": "node dist/cli.js",
+		"cli": "node dist/cli.js",
+		"nav:gen": "node dist/cli.js gen",
+		"nav:view": "node dist/cli.js view"
 	},
 	"files": [
 		"dist"
