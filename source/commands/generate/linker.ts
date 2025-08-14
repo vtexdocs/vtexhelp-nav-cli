@@ -154,6 +154,7 @@ export class CrossLanguageLinker {
     const crossLangDoc: CrossLanguageDocument = {
       slugEN,
       title: {} as any,
+      slug: {} as any,
       categories: {} as any,
     };
 
@@ -166,6 +167,13 @@ export class CrossLanguageLinker {
       
       // Build localized title
       crossLangDoc.title[lang] = file.metadata.title;
+      
+      // Build localized slug using priority order: legacySlug -> filename-based -> empty string
+      let localSlug = file.metadata['legacySlug'];
+      if (!localSlug) {
+        localSlug = this.generateSlugFromFilename(file.fileName);
+      }
+      crossLangDoc.slug[lang] = localSlug;
       
       // Build localized category path
       const categoryPath = this.buildCategoryPath(file);
@@ -221,6 +229,10 @@ export class CrossLanguageLinker {
         });
       }
 
+      if (!crossLangDoc.slug[targetLang]) {
+        crossLangDoc.slug[targetLang] = '';
+      }
+
       if (!crossLangDoc.categories[targetLang]) {
         crossLangDoc.categories[targetLang] = crossLangDoc.categories[fallbackLang];
       }
@@ -266,6 +278,20 @@ export class CrossLanguageLinker {
     }
     
     return stats;
+  }
+
+
+  private generateSlugFromFilename(fileName: string): string {
+    // Remove file extension and generate slug from filename
+    const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
+    return this.slugify(nameWithoutExt);
+  }
+
+  private slugify(text: string): string {
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 
   private updateCategoryLocalization(

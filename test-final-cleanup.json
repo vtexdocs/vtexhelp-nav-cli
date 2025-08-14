@@ -1,0 +1,402 @@
+{
+  "navbar": [
+    {
+      "documentation": "troubleshooting",
+      "name": {
+        "en": "Troubleshooting",
+        "es": "Troubleshooting",
+        "pt": "Troubleshooting"
+      },
+      "slugPrefix": "troubleshooting",
+      "categories": [
+        {
+          "name": {
+            "en": "Integrations",
+            "es": "Integrations",
+            "pt": "Integrations"
+          },
+          "slug": "integrations",
+          "origin": "",
+          "type": "category",
+          "children": [
+            {
+              "name": {
+                "en": "Integration errors in Amazon orders",
+                "es": "Pedidos de Amazon muestran errores de integración",
+                "pt": "Pedidos com a Amazon apresentam erros de integração"
+              },
+              "slug": "integration-errors-in-amazon-orders",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "My order was closed with the wrong price",
+                "es": "Pedido finalizado con precio incorrecto",
+                "pt": "Meu pedido foi fechado com o preço errado"
+              },
+              "slug": "my-order-was-closed-with-the-wrong-price",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "My orders in Mercado Libre have errors",
+                "es": "Errores en mis pedidos de Mercado Libre",
+                "pt": "Meus pedidos do Mercado Livre apresentam erros"
+              },
+              "slug": "my-orders-in-mercado-libre-have-errors",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why don't marketplace orders integrate with my store?",
+                "es": "¿Por qué los pedidos del marketplace no se integran con mi tienda?",
+                "pt": "Porque os pedidos do marketplace não integram com minha loja?"
+              },
+              "slug": "why-dont-marketplace-orders-integrate-with-my-store",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why haven't my product prices been sent to the marketplace?",
+                "es": "¿Por qué no se enviaron los precios de los productos de mi tienda al marketplace?",
+                "pt": "Por que os preços dos produtos da minha loja não foram enviados ao marketplace?"
+              },
+              "slug": "why-havent-my-product-prices-been-sent-to-the-marketplace",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": {
+            "en": "Store Operations",
+            "es": "Store Operations",
+            "pt": "Store Operations"
+          },
+          "slug": "store-operations",
+          "origin": "",
+          "type": "category",
+          "children": [
+            {
+              "name": {
+                "en": "Admin redirect search returns no results",
+                "es": "La búsqueda de redirecciones en el Admin no devuelve resultados",
+                "pt": "Busca de redirects no Admin não retorna resultados"
+              },
+              "slug": "admin-redirect-search-returns-no-results",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Customer and Address forms do not exist in multistores",
+                "es": "Formularios Cliente y Dirección no existen en multitienda",
+                "pt": "Formulários de Cliente e Endereço não existem em multiloja"
+              },
+              "slug": "customer-and-address-forms-do-not-exist-in-multistores",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "es": "El pedido de mi tienda presenta el status \"Verificando factura\"",
+                "pt": "O pedido da minha loja está parado no status \"Verificando nota fiscal\"",
+                "en": "El pedido de mi tienda presenta el status \"Verificando factura\""
+              },
+              "slug": "my-stores-order-still-has-the-status-verifying-invoice",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "es": "El pedido se detiene en el status \"Listo para preparación\"",
+                "pt": "O pedido não avança após o status \"Pronto para manuseio\"",
+                "en": "El pedido se detiene en el status \"Listo para preparación\""
+              },
+              "slug": "the-order-doesnt-progress-after-the-status-ready-for-handling",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "es": "El pedido se detiene en el status \"Preparando envío\"",
+                "pt": "O pedido não avança após o status \"Preparando entrega\"",
+                "en": "El pedido se detiene en el status \"Preparando envío\""
+              },
+              "slug": "the-order-doesnt-progress-after-the-status-handling-shipping",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Error installing custom SSL certificates",
+                "es": "Error al instalar certificado SSL personalizado",
+                "pt": "Erro ao instalar certificado SSL customizado"
+              },
+              "slug": "error-installing-custom-ssl-certificates",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Error when trying to import SKUs via spreadsheet in the VTEX Admin",
+                "es": "Error al intentar importar SKUs vía plantilla en el Admin VTEX",
+                "pt": "Erro ao tentar importar SKUs por planilha no Admin VTEX"
+              },
+              "slug": "error-when-trying-to-import-skus-via-spreadsheet-in-the-vtex-admin",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "How to remove the error message \"Request headers must only contain ASCII characters\"",
+                "es": "Cómo remover el mensaje de error \"Request headers must contain only ASCII characters\"",
+                "pt": "Como remover a mensagem de erro \"Request headers must contain only ASCII characters\""
+              },
+              "slug": "removing-error-message-request-headers-must-only-contain-ascii",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "I can't fix the schema error in B2B apps",
+                "es": "Cómo corregir el error de esquema en aplicaciones B2B",
+                "pt": "Não consigo corrigir o erro de schema em aplicativos B2B"
+              },
+              "slug": "i-cant-fix-the-schema-error-in-b2b-apps",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "I can't import the price table",
+                "es": "No puedo importar la plantilla de precios",
+                "pt": "Não consigo importar a planilha de preços"
+              },
+              "slug": "i-cant-import-the-price-table",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "I can't index a product in the catalog",
+                "es": "No logro indexar un producto del catálogo",
+                "pt": "Não consigo indexar um produto do catálogo"
+              },
+              "slug": "i-cant-index-a-product-in-the-catalog",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "I can't receive emails from VTEX",
+                "es": "¿Por qué no recibo emails de VTEX?",
+                "pt": "Não consigo receber emails da VTEX"
+              },
+              "slug": "i-cant-receive-emails-from-vtex",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "I can't update the EAN of my SKUs via API",
+                "es": "No logro actualizar el EAN de mis SKU vía API",
+                "pt": "Não consigo atualizar o EAN dos meus SKUs por API"
+              },
+              "slug": "i-cant-update-the-ean-of-my-skus-via-api",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "I can't view a page in the Admin",
+                "es": "No puedo acceder a una página del Admin",
+                "pt": "Não consigo visualizar uma página no Admin"
+              },
+              "slug": "i-cant-view-a-page-in-the-admin",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "I can't view the product in the search results",
+                "es": "El producto no se muestra en la búsqueda del sitio web",
+                "pt": "Não consigo visualizar o produto na busca do site"
+              },
+              "slug": "i-cant-view-the-product-in-the-search-results",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "I haven't received the email with the report exported from Master Data v1",
+                "es": "No recibí el email con el informe exportado de Master Data v1",
+                "pt": "Não recebi o email com o relatório exportado do Master Data v1"
+              },
+              "slug": "i-havent-received-the-email-with-the-report-exported-from-master-data-v1",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Metrics are not displayed in the order dashboard",
+                "es": "No puedo ver las métricas en el dashboard de pedidos",
+                "pt": "Não consigo visualizar métricas no dashboard de pedidos"
+              },
+              "slug": "metrics-are-not-displayed-in-the-order-dashboard",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "My ad is not displayed on Mercado Livre",
+                "es": "Mi anuncio no aparece en Mercado Libre",
+                "pt": "Meu anúncio não é exibido no Mercado Livre"
+              },
+              "slug": "my-ad-is-not-displayed-on-mercado-livre",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "My inventory is negative",
+                "es": "Mi stock está negativo",
+                "pt": "Meu estoque está negativo"
+              },
+              "slug": "my-inventory-is-negative",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "My store order was canceled",
+                "es": "El pedido de mi tienda se canceló",
+                "pt": "O pedido da minha loja foi cancelado"
+              },
+              "slug": "my-store-order-was-canceled",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "My store order was not created",
+                "es": "No se ha creado el pedido de mi tienda",
+                "pt": "O pedido da minha loja não foi criado"
+              },
+              "slug": "my-store-order-was-not-created",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "My store’s Site Editor is not working",
+                "es": "Problemas con Site Editor en mi tienda",
+                "pt": "O Site Editor da minha loja não está funcionando"
+              },
+              "slug": "my-stores-site-editor-is-not-working",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Product remains available in stock after the order has been invoiced",
+                "es": "El producto continúa reservado tras la facturación del pedido",
+                "pt": "Produto continua reservado em estoque após faturamento do pedido"
+              },
+              "slug": "product-remains-available-in-stock-after-the-order-has-been-invoiced",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Promotion not applied to the marketplace",
+                "es": "Promoción no aplicada en Marketplace",
+                "pt": "Promoção não aplicada ao Marketplace"
+              },
+              "slug": "promotion-not-applied-to-the-marketplace",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "The order was split into packages with separate deliveries",
+                "es": "El pedido se dividió en paquetes con envíos separados",
+                "pt": "O pedido foi dividido em pacotes com entregas distintas"
+              },
+              "slug": "the-order-was-split-into-packages-with-separate-deliveries",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "The promotion wasn't applied to the customer cluster",
+                "es": "La promoción no se aplicó al clúster de clientes",
+                "pt": "Promoção não foi aplicada ao cluster de clientes"
+              },
+              "slug": "the-promotion-wasnt-applied-to-the-customer-cluster",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Trigger in Master Data v2 is not working",
+                "es": "No funciona el trigger en Master Data v2",
+                "pt": "Trigger no Master Data v2 não funciona"
+              },
+              "slug": "trigger-in-master-data-v2-is-not-working",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": {
+            "en": "Store Operations",
+            "es": "Store Operations",
+            "pt": "Store Operations"
+          },
+          "slug": "store-operations",
+          "origin": "",
+          "type": "category",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1388 @@
+{
+  "navbar": [
+    {
+      "documentation": "faq",
+      "name": {
+        "en": "FAQ",
+        "es": "FAQ",
+        "pt": "FAQ"
+      },
+      "slugPrefix": "docs/faq",
+      "categories": [
+        {
+          "name": {
+            "en": "Billing",
+            "es": "Billing",
+            "pt": "Billing"
+          },
+          "slug": "billing",
+          "origin": "",
+          "type": "category",
+          "children": [
+            {
+              "name": {
+                "en": "I received an invoice and I'm not a VTEX client. Why?",
+                "es": "Recibí una factura y no soy cliente VTEX. ¿Por qué?",
+                "pt": "Recebi uma Nota Fiscal e não sou cliente VTEX. Por quê?"
+              },
+              "slug": "i-received-an-invoice-and-im-not-a-vtex-client",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": {
+            "en": "Channels",
+            "es": "Channels",
+            "pt": "Channels"
+          },
+          "slug": "channels",
+          "origin": "",
+          "type": "category",
+          "children": [
+            {
+              "name": {
+                "en": "How to configure a multi-brand store in the integration with Mercado Livre",
+                "es": "¿Cómo configurar la tienda paraguas en la integración con Mercado Libre?",
+                "pt": "Como configurar loja guarda-chuva na integração com o Mercado Livre?"
+              },
+              "slug": "how-to-configure-a-top-level-store-in-the-integration-with-mercado-livre",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "How to set up multiple accounts in the Mercado Livre Integration",
+                "es": "¿Cómo configurar múltiples cuentas en la integración con Mercado Libre",
+                "pt": "Como configurar múltiplas contas na integração com o Mercado Livre"
+              },
+              "slug": "how-to-set-up-multiple-accounts-in-the-mercado-livre-integration",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "I don't recognize the reservation ID of an order. What's happened?",
+                "es": "No reconozco el ID de reserva de un pedido. ¿Qué puede haber ocurrido?",
+                "pt": "Não reconheço o ID de reserva de um pedido. O que pode ter acontecido? "
+              },
+              "slug": "i-dont-recognize-the-reservation-id-of-an-order",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why am I unable to change product information on the marketplace?",
+                "es": "¿Por qué no puedo cambiar las informaciones de los productos en el marketplace?",
+                "pt": "Por que não consigo alterar informações do produto no marketplace?"
+              },
+              "slug": "why-am-i-unable-to-change-product-information-on-the-marketplace",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why am I unable to integrate products without an EAN or with an invalid EAN?",
+                "es": "¿Por qué no puedo integrar producto sin EAN o con EAN incorrecto?",
+                "pt": "Por que não consigo integrar produto sem EAN ou com EAN inválido?"
+              },
+              "slug": "why-am-i-unable-to-integrate-products-without-an-ean-or-with-an-invalid-ean",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why are my orders not integrating with Mercado Livre?",
+                "es": "¿Por qué mis pedidos no integran con el Mercado Libre?",
+                "pt": "Por que meus pedidos não integram com o Mercado Livre?"
+              },
+              "slug": "why-are-my-orders-not-integrating-with-mercado-livre",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why are my products out of stock on the marketplace?",
+                "es": "¿Por qué mis productos están sin stock en el marketplace?",
+                "pt": "Por que meus produtos estão sem estoque no marketplace?"
+              },
+              "slug": "why-are-my-products-out-of-stock-on-the-marketplace",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why do some products, SKUs or orders are not integrating with VTEX?",
+                "es": "¿Por qué algunos productos, SKUs o pedidos no integran con VTEX?",
+                "pt": "Por que alguns produtos, SKUs ou pedidos não estão integrando com a VTEX?"
+              },
+              "slug": "products-or-skus-are-not-integrating-with-vtex",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why does Mercado Livre return attribution errors after mapping?",
+                "es": "¿Por qué el Mercado Livre retorna errores de atributo tras el mapeo?",
+                "pt": "Por que o Mercado Livre retorna erros de atributo após o mapeamento?"
+              },
+              "slug": "why-does-mercado-livre-return-attribution-errors-after-mapping",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why does my order appear cancelled on the marketplace but is shown as billed on VTEX?",
+                "es": "¿Por qué mi pedido aparece cancelado en el marketplace pero está como facturado en VTEX?",
+                "pt": "Por que meu pedido aparece cancelado no marketplace mas está como faturado na VTEX?"
+              },
+              "slug": "why-does-my-order-appear-cancelled-at-the-marketplace-but-is-shown-as-billed-at-vtex",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why doesn’t the order go to the ‘Sent’ status on the marketplace?",
+                "es": "¿Por qué el pedido no cambia para el estado \"Enviado\" en el marketplace?",
+                "pt": "Por que o pedido não vai para o status \"Enviado\" no marketplace?"
+              },
+              "slug": "why-doesnt-the-order-go-to-the-sent-status-on-the-marketplace",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why don’t my payment methods appear on the marketplace?",
+                "es": "¿Por qué mis medios de pago no aparecen en el marketplace?",
+                "pt": "Por que meus meios de pagamento não aparecem no marketplace?"
+              },
+              "slug": "why-dont-my-payment-methods-appear-on-the-marketplace",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why has my product been wrongly categorized on Mercado Livre?",
+                "es": "¿Por qué mi producto fue categorizado equivocadamente en Mercado Livre?",
+                "pt": "Por que meu produto foi categorizado errado no Mercado Livre?"
+              },
+              "slug": "why-has-my-product-been-wrongly-categorized-on-mercado-livre",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why is it not possible to integrate a VTEX marketplace to other marketplaces?",
+                "es": "¿Por qué no puedo integrar un marketplace VTEX con otro marketplace?",
+                "pt": "Por que não consigo integrar um marketplace VTEX com outro marketplace?"
+              },
+              "slug": "why-is-it-not-possible-to-integrate-vtex-marketplace-to-other-marketplaces",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why isn’t my product deactivated on the marketplace",
+                "es": "¿Por qué el producto no es inactivado en el marketplace?",
+                "pt": "Por que meu produto não é inativado no marketplace?"
+              },
+              "slug": "why-isnt-my-product-deactivated-on-the-marketplace",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why isn’t the order invoiced on the marketplace?",
+                "es": "¿Por qué el pedido no factura en el marketplace?",
+                "pt": "Por que o pedido não fatura no marketplace?"
+              },
+              "slug": "why-isnt-the-order-invoiced-on-the-marketplace",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why was an inactive product sold on the marketplace?",
+                "es": "¿Por qué mi producto inactivo fue vendido en el marketplace?",
+                "pt": "Por que meu produto inativo foi vendido no marketplace?"
+              },
+              "slug": "why-was-an-inactive-product-sold-on-the-marketplace",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why was my ad on Mercado Livre paused?",
+                "es": "¿Por qué mi anuncio fue pausado en Mercado Libre?",
+                "pt": "Por que meu anúncio foi pausado no Mercado Livre?"
+              },
+              "slug": "why-was-my-ad-paused-in-mercado-libre?",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why was my order cancelled in VTEX, and not in the marketplace?",
+                "es": "¿Por qué el pedido fue cancelado en la VTEX y no en el marketplace?",
+                "pt": "Por que meu pedido foi cancelado na VTEX e não no marketplace?"
+              },
+              "slug": "why-was-my-order-cancelled-in-vtex-and-not-in-the-marketplace",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why wasn’t the price sent to the marketplace?",
+                "es": "¿Por qué el precio no fue integrado con el marketplace?",
+                "pt": "Por que o preço não foi enviado para o marketplace?"
+              },
+              "slug": "why-wasnt-the-price-sent-to-the-marketplace",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why were products not sent to the marketplace?",
+                "es": "¿Por qué los productos no fueron enviados para el marketplace?",
+                "pt": "Por que os produtos não foram enviados para o marketplace?"
+              },
+              "slug": "why-were-products-not-sent-to-the-marketplace",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": {
+            "en": "Financial",
+            "es": "Financial",
+            "pt": "Financial"
+          },
+          "slug": "financial",
+          "origin": "",
+          "type": "category",
+          "children": [
+            {
+              "name": {
+                "en": "Change seller for affiliations that support native split: FAQ ",
+                "es": "Change seller por afiliaciones que admitan split nativo: FAQ ",
+                "pt": "Change seller para afiliações que suportam split nativo: FAQ"
+              },
+              "slug": "change-seller-for-affiliations-that-support-native-split-faq",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Fix redirect error in PagSeguro",
+                "es": "Corregir error de redireccionamiento en PagSeguro",
+                "pt": "Corrigir erro de redirecionamento no PagSeguro"
+              },
+              "slug": "fix-redirect-error-in-pagseguro",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "How does the scheduled settlement flow work for purchases made with two payment methods?",
+                "es": "¿Cómo funciona el flujo de liquidación programada para las compras realizadas con dos formas de pago?",
+                "pt": "Como funciona o fluxo de liquidação agendada para compras realizadas com duas formas de pagamento?"
+              },
+              "slug": "how-does-the-scheduled-settlement-flow-work-for-purchases-made-with-two-payment",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "What should I do when there are problems with a transaction?",
+                "es": "¿Qué hacer cuando hay problemas con una transacción?",
+                "pt": "O que fazer quando há problemas com uma transação?"
+              },
+              "slug": "what-should-i-do-when-there-are-problems-with-a-transaction",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "What to do when the product's NSU is duplicated in transactions performed by Rede?",
+                "es": "¿Qué hacer cuando el NSU del producto se duplica en las transacciones realizadas por Rede?",
+                "pt": "O que fazer quando o NSU do produto é duplicada em transações realizadas pela Rede?"
+              },
+              "slug": "what-to-do-when-the-products-nsu-is-duplicated-in-transactions-performed-by-rede",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why am I getting e-mails telling me to revise the settlement of a payment?",
+                "es": "Por que estoy recibiendo e-mails para revisar la liquidación de un pago?",
+                "pt": "Por que estou recebendo e-mails para revisar a liquidação de um pagamento?"
+              },
+              "slug": "why-i-am-getting-emails-telling-me-to-revise-the-settlement-of-payment",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why can't I find a transaction in Payments?",
+                "es": "¿Por qué no encuentro una transacción en Pagos?",
+                "pt": "Por que não encontro uma transação em Pagamentos?"
+              },
+              "slug": "why-cant-i-find-a-transaction-in-pci-gateway",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why doesn’t Payments finalize the cancellation of a transaction?",
+                "es": "¿Por qué el Pagos no finaliza la cancelación de la transacción?",
+                "pt": "Por que o Pagamentos não finaliza o cancelamento da transação?"
+              },
+              "slug": "why-doesnt-the-payments-finalize-the-cancellation-of-a-transaction",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why doesn’t the payment method appear on the order on VTEX?",
+                "es": "¿Por qué no aparece la forma de pago en el pedido en VTEX?",
+                "pt": "Por que não aparece a forma de pagamento do pedido na VTEX?"
+              },
+              "slug": "why-doesnt-the-payment-method-appear-on-the-order-on-vtex",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why has a transaction been successfully settled but not finalized in the Payments?",
+                "es": "¿Por qué una transacción fue liquidada con éxito pero no fue finalizada en el Pagos?",
+                "pt": "Por que uma transação foi liquidada com sucesso mas não foi finalizada em Pagamentos?"
+              },
+              "slug": "why-has-a-transaction-been-successfully-settled-but-not-finalized-in-the-pci-gateway",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why is a payment stuck at Authorizing status?",
+                "es": "¿Por qué un pago se detiene en el status de Autorización?",
+                "pt": "Por que um pagamento está parado no status Authorizing?"
+              },
+              "slug": "payment-stuck-at-authorizing-status",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why was not an order sent to the anti-fraud?",
+                "es": "¿Por qué un pedido no fue enviado al antifraude?",
+                "pt": "Por que um pedido não foi enviado para o antifraude?"
+              },
+              "slug": "why-was-not-an-order-sent-to-the-anti-fraud",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": {
+            "en": "Identity",
+            "es": "Identity",
+            "pt": "Identity"
+          },
+          "slug": "identity",
+          "origin": "",
+          "type": "category",
+          "children": [
+            {
+              "name": {
+                "en": "What can I do if a customer is unable to log in?",
+                "es": "Qué hacer cuando un cliente no logra hacer el login",
+                "pt": "O que fazer quando um cliente não consegue logar"
+              },
+              "slug": "what-can-i-do-if-a-customer-is-unable-to-log-in",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "What to do with error when accessing Orders module",
+                "es": "Que hacer cuando hay un error de acceso en el módulo Pedidos",
+                "pt": "O que fazer em caso de erro de acesso ao módulo Pedidos"
+              },
+              "slug": "what-to-do-with-error-when-accessing-orders-module",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why after signing in to the administrative panel I am redirected to my store?",
+                "es": "¿Por qué al entrar en el panel administrativo soy redirigido a mi tienda?",
+                "pt": "Por que ao fazer login no painel administrativo sou redirecionado para minha loja?"
+              },
+              "slug": "why-after-signing-in-to-the-administrative-panel-i-am-redirected-to-my-store",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why authentication with appkey and apptoken doesn't work?",
+                "es": "¿Por qué  no funciona la autentificación con appkey y apptoken?",
+                "pt": "Por que a autenticação utilizando appKey e appToken não funciona? "
+              },
+              "slug": "why-doesnt-authentication-with-appkey-and-apptoken-work",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": {
+            "en": "Marketing & Merchandising",
+            "es": "Marketing & Merchandising",
+            "pt": "Marketing & Merchandising"
+          },
+          "slug": "marketing-merchandising",
+          "origin": "",
+          "type": "category",
+          "children": [
+            {
+              "name": {
+                "en": "How to associate two promotions to the same coupon",
+                "es": "Cómo vincular dos promociones al mismo cupón",
+                "pt": "Como vincular duas promoções ao mesmo cupom"
+              },
+              "slug": "how-to-associate-two-promotions-to-the-same-coupon",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "I can not edit SKUs. What to do?",
+                "es": "No puedo editar SKUs. ¿Que hacer?",
+                "pt": "Não consigo editar SKUs. O que fazer?"
+              },
+              "slug": "i-cannot-edit-skus",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "I can't find a collection. What do I do?",
+                "es": "No encuentro una colección. ¿Que hacer?",
+                "pt": "Não encontro uma coleção. O que fazer?"
+              },
+              "slug": "nao-encontro-uma-colecao-o-que-fazer",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "I received the message error \"the limit of activated calculators has been reached\". What to do?",
+                "es": "He recibido el mensaje de error \"the limit of activated calculators has been reached\". Que hacer?",
+                "pt": "Recebi a mensagem de erro \"the limit of activated calculators has been reached\". O que fazer?"
+              },
+              "slug": "i-received-the-message-error-the-limit-of-activated-calculators-has-been-reached-what-to-do",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "I registered a similar category, but the products are not displayed. Why?",
+                "es": "¿Por qué he registrado categoría similar y los productos no son exhibidos?",
+                "pt": "Por que cadastrei categoria similar e os produtos não são exibidos?"
+              },
+              "slug": "i-registered-a-similar-category-but-the-products-are-not-displayed-why",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "I've activated a product subscription, but it doesn't appear on the site. Why?",
+                "es": "He activado la suscripción de un producto, pero no aparece en el sitio. ¿Por qué?",
+                "pt": "Ativei a assinatura de um produto, mas ele não aparece no site. Por quê?"
+              },
+              "slug": "i-ve-activated-a-product-subscription-but-it-doesnt-appear-on-the-site",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "I've edited a placeholder and the site hasn't been updated. What to do?",
+                "es": "He editado un placeholder y el sitio no se actualiza. ¿Que hacer?",
+                "pt": "Editei um placeholder e o site não atualiza. O que fazer?"
+              },
+              "slug": "ive-edited-a-placeholder-and-the-site-hasnt-been-updated-what-to-do",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Kitlook is not displayed in the shop window",
+                "es": "Kitlook no se muestra en la vitrina",
+                "pt": "Kitlook não é exibido na vitrine"
+              },
+              "slug": "kitlook-is-not-displayed-in-the-shop-window",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "The price in the search result is different from the product page",
+                "es": "El precio del resultado de búsqueda es diferente de la página de producto",
+                "pt": "Preço do resultado de busca é diferente da página de produto"
+              },
+              "slug": "the-price-in-the-search-result-is-different-from-the-product-page",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Website with error: how to fix it?",
+                "es": "Website con error: ¿cómo ajustarlo?",
+                "pt": "Website com erro: como ajustar?"
+              },
+              "slug": "website-with-error-how-to-fix-it",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why are my store images being displayed in poor quality?",
+                "es": "¿Por qué las imágenes de mi tienda se muestran con baja calidad?",
+                "pt": "Por que as imagens da minha loja estão sendo exibidas com baixa qualidade?"
+              },
+              "slug": "why-are-my-store-images-being-displayed-in-poor-quality",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why can't I change the fields of a group?",
+                "es": "Por que no puedo cambiar los campos en un grupo?",
+                "pt": "Por que não consigo alterar os campos de um grupo?"
+              },
+              "slug": "why-can-t-i-change-the-fields-in-a-group",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why doesn't my benefit work for a client cluster?",
+                "es": "¿Por qué mi promoción no funciona para un clúster de clientes?",
+                "pt": "Por que minha promoção não funciona para um cluster de clientes?"
+              },
+              "slug": "why-doesnt-my-benefit-work-for-a-client-cluster",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why doesn't my benefit work for all types of delivery?",
+                "es": "¿Por qué mi promoción no funciona para todos los tipos de entrega?",
+                "pt": "Por que minha promoção não funciona para todos os tipos de entrega?"
+              },
+              "slug": "why-doesnt-my-benefit-work-for-all-types-of-delivery",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why doesn't the product field appear as a filter?",
+                "es": "¿Por qué el  campo de producto no aparece como filtro?",
+                "pt": "Por que campo de produto não aparece como filtro?"
+              },
+              "slug": "why-doesnt-the-product-field-appear-as-a-filter",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why I don't receive my abandoned cart emails?",
+                "es": "¿Por qué no recibo el e-mail de Carrito Abandonado?",
+                "pt": "Por que não recebo email de carrinho abandonado?"
+              },
+              "slug": "why-i-do-not-receive-my-abandoned-cart-emails",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why is “Let me know” not showing?",
+                "es": "¿Por qué no aparece el \"Avíseme\"?",
+                "pt": "Por que não aparece o \"Avise-me\"?"
+              },
+              "slug": "why-is-let-me-know-not-showing",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why is my product appearing in the wrong category?",
+                "es": "¿Por qué mi producto aparece en la categoría incorrecta?",
+                "pt": "Por que meu produto está aparecendo na categoria errada?"
+              },
+              "slug": "why-is-my-product-appearing-in-the-wrong-category",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why is my store’s zoom not working?",
+                "es": "¿Por qué no funciona el zoom de mi tienda?",
+                "pt": "Por que o zoom da minha loja não funciona?"
+              },
+              "slug": "why-is-my-stores-zoom-not-working",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why is the \"thumb\" image of poor quality?",
+                "es": "¿Por qué la imagen \"thumb\" está en baja calidad?",
+                "pt": "Por que a imagem \"thumb\" está em baixa qualidade?"
+              },
+              "slug": "why-is-the-thumb-image-of-poor-quality",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why is the product name duplicated?",
+                "es": "¿Por qué el producto está con nombre duplicado?",
+                "pt": "Por que o produto está com nome duplicado?"
+              },
+              "slug": "why-is-the-product-name-duplicated",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why is the product not visible on the website?",
+                "es": "¿Por qué el producto no aparece en el sitio web?",
+                "pt": "Por que o produto não aparece no site?"
+              },
+              "slug": "why-is-the-product-not-visible-on-the-website",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why isn’t my product indexed?",
+                "es": "¿Por qué el producto no indexa?",
+                "pt": "Por que o produto não indexa?"
+              },
+              "slug": "why-isnt-my-product-indexed",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why isn't the price table displayed to the customer?",
+                "es": "¿Por qué la tabla de precios no aparece para el cliente?",
+                "pt": "Por que a tabela de preços não aparece para o cliente?"
+              },
+              "slug": "why-isnt-the-price-table-displayed-to-the-customer",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why VTEX search engine ignores some terms",
+                "es": "Por que el buscador de VTEX ignora algunos términos buscados",
+                "pt": "Por que o buscador da VTEX ignora alguns termos buscados"
+              },
+              "slug": "why-vtex-search-engine-ignores-some-terms",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": {
+            "en": "Others",
+            "es": "Others",
+            "pt": "Others"
+          },
+          "slug": "others",
+          "origin": "",
+          "type": "category",
+          "children": [
+            {
+              "name": {
+                "en": "AB Testing: why is it not working? (Google Analytics)",
+                "es": "Prueba AB: ¿por qué no está funcionando? (Google Analytics)",
+                "pt": "Teste AB: por que não está funcionando? (Google Analytics)"
+              },
+              "slug": "ab-testing-why-is-it-not-working-google-analytics",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "My site is slow. What to do?",
+                "es": "Mi sitio está lento. ¿Que hacer?",
+                "pt": "Meu site está lento. O que fazer?"
+              },
+              "slug": "my-site-is-slow",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "What to do when the \"Notify me\" option is not displayed",
+                "es": "Qué hacer cuando no aparece la opción Avísame",
+                "pt": "O que fazer quando o \"Avise-me\" não está sendo exibido"
+              },
+              "slug": "what-to-do-when-the-notify-me-option-is-not-displayed",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why are my meta tags not used by Google?",
+                "es": "¿Por qué mis meta tags no son utilizadas por Google?",
+                "pt": "Por que minhas meta tags não são utilizadas pelo Google?"
+              },
+              "slug": "why-are-my-meta tags-not-used-by-google",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why can’t I open images that I have downloaded directly from my site?",
+                "es": "¿Por qué no consigo abrir imágenes que descargué directamente de mi sitio?",
+                "pt": "Por que não consigo abrir imagens que baixei diretamente do meu site?"
+              },
+              "slug": "why-cant-i-open-images-that-i-have-downloaded-directly-from-my-site",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why have not orders been associated with a list?",
+                "es": "¿Por qué pedidos no se asociaron a una lista?",
+                "pt": "Por que pedidos não foram associados a uma lista?"
+              },
+              "slug": "why-have-not-orders-been-associated-with-a-list",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": {
+            "en": "Post Purchase",
+            "es": "Post Purchase",
+            "pt": "Post Purchase"
+          },
+          "slug": "post-purchase",
+          "origin": "",
+          "type": "category",
+          "children": [
+            {
+              "name": {
+                "en": "\"Invalid header signature\" error when trying to import freight spreadsheet",
+                "es": "Error \"invalid header signature\" al intentar importar la plantilla de flete",
+                "pt": "Erro \"invalid header signature\" ao tentar importar planilha de frete"
+              },
+              "slug": "erro-invalid-header-signature-ao-tentar-importar-planilha-de-frete",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Error \"object reference not set to an instance of an object\" when uploading a freight spreadsheet",
+                "es": "Error \"object reference not set to an instance of an object\" al intentar hacer el upload de una plantilla de flete",
+                "pt": "Erro \"object reference not set to an instance of an object\" ao tentar importar planilha de frete"
+              },
+              "slug": "erro-object-reference-not-set-to-an-instance-of-an-object-ao-tentar",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Error 404 when trying to cancel order. What to do?",
+                "es": "Error 404 al intentar cancelar pedido. ¿Que hacer?",
+                "pt": "Erro 404 ao tentar cancelar pedido. O que fazer?"
+              },
+              "slug": "error-404-when-trying-to-cancel-order",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "FAQ - VTEX Shipping Network",
+                "es": "FAQ - VTEX Shipping Network",
+                "pt": "Perguntas frequentes VTEX Shipping Network"
+              },
+              "slug": "faq-vtex-shipping-network",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "How to find customers that has ordered the most?",
+                "es": "¿Cómo veo a los clientes que más han comprado?",
+                "pt": "Como vejo os clientes que mais compraram?"
+              },
+              "slug": "how-to-find-customers-that-has-ordered-the-most",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "I’ve tried to update the freight spreadsheet and an error occurred. What can I do?",
+                "es": "Intenté actualizar la plantilla de flete y ocurrió un error. ¿Qué hacer?",
+                "pt": "Tentei atualizar a planilha de frete e recebi um erro. O que fazer?"
+              },
+              "slug": "ive-tried-to-update-the-freight-spreadsheet-and-an-error-occurred-what-can-i-do",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Null column error when trying to import freight spreadsheet",
+                "es": "Error de columna nula al intentar importar la plantilla de flete",
+                "pt": "Erro de coluna nula ao tentar importar planilha de frete"
+              },
+              "slug": "erro-de-coluna-nula-ao-tentar-importar-planilha-de-frete",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Order is locked in \"Ready for Handling\", what should I do?",
+                "es": "Pedido está trabado en \"Listo para preparación\", ¿qué se hace?",
+                "pt": "Pedido está travado em \"Pronto para manuseio\", o que fazer?"
+              },
+              "slug": "order-is-locked-in-ready-for-handling-what-should-i-do",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Some gateway affiliations are highlighted in yellow. Why?",
+                "es": "¿Por qué quedan amarillas  algunas afiliaciones de gateways?",
+                "pt": "Por que algumas afiliações de gateway ficam marcadas em amarelo?"
+              },
+              "slug": "some-gateway-affiliations-are-highlighted-in-yellow-why",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "The order was billed in the ERP but remains in the \"Preparing Delivery\" status. What to do?",
+                "es": "El pedido fue facturado en el ERP pero continúa en el status \"Preparando Entrega\". ¿Que hacer?",
+                "pt": "O pedido foi faturado no ERP mas continua no status \"Preparando Entrega\". O que fazer?"
+              },
+              "slug": "the-order-was-billed-in-the-erp-but-remains-in-the-preparing-delivery-status",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Visa Checkout orders do not appear in My Orders section",
+                "es": "Pedidos realizados con Visa Checkout no aparecen en el área de Mis Pedidos",
+                "pt": "Pedidos feitos com Visa Checkout não aparecem na área de Meus Pedidos"
+              },
+              "slug": "visa-checkout-orders-do-not-appear-in-my-orders-section",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "What to do when receiving an error message during shipping simulation",
+                "es": "Qué hacer al recibir error en la simulación de flete",
+                "pt": "O que fazer ao receber erro na simulação de frete"
+              },
+              "slug": "what-to-do-when-receiving-an-error-message-during-shipping-simulation",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "When trying to approve payment, Orders Managment returns \"authorize-fulfillment\" error. What to do?",
+                "es": "Al intentar aprobar el pago, Gestión de Pedidos devuelve el error de \"authorize-fulfillment\". ¿Que hacer?",
+                "pt": "Ao tentar aprovar pagamento, Gerenciamento de Pedidos retorna erro. O que fazer?"
+              },
+              "slug": "when-trying-to-approve-payment-orders-managment-returns-authorize-fulfillment-error-what-to-do",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why an order was cancelled when its status “Ready for Handling”?",
+                "es": "¿Por qué un pedido fue cancelado en el status “Listo para preparar”?",
+                "pt": "Por que um pedido foi cancelado no status “Preparando Entrega”?"
+              },
+              "slug": "why-was-an-order-cancelled-when-its-status-was-shown-as-preparando-entrega",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why can't I see my carrier on checkout?",
+                "es": "¿Por qué mi transportista no aparece en el checkout?",
+                "pt": "Por que minha transportadora não aparece no checkout?"
+              },
+              "slug": "why-cant-i-see-my-carrier-on-checkout",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why did the carrier calculate freight for a weight lower than the minimum set?",
+                "es": "¿Por qué mi transportadora calculó flete,  para un peso menor que el mínimo configurado?",
+                "pt": "Por que a transportadora calculou frete para um peso menor do que o mínimo configurado?"
+              },
+              "slug": "why-did-the-carrier-calculate-freight-for-a-weight-lower-than-the-minimum-set",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why do I see several transactional emails repeated in an order?",
+                "es": "¿Por qué veo varios emails transaccionales repetidos en un pedido?",
+                "pt": "Por que vejo vários e-mails transacionais repetidos em um pedido?"
+              },
+              "slug": "why-do-i-see-several-transactional-emails-repeated-in-an-order",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why does the hostName in the Message Center JSON display different information from the Account management?",
+                "es": "¿Por qué el hostName en el JSON del Centro de mensajes muestra información distinta a la de la Gestión de la cuenta?",
+                "pt": "Por que o hostName no JSON da Central de mensagens mostra informação diferente do Gerenciamento da conta?"
+              },
+              "slug": "why-does-the-hostName-in-the-message-center-JSON-display-different-information-from-the-license-manager",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why does the message \"The TimeSpan could not be parsed... \" appear when importing the shipping worksheet?",
+                "es": "¿Por qué aparece el mensaje \"The TimeSpan could not be parsed...\" al importar planilla de flete?",
+                "pt": "Por que aparece a mensagem \"The TimeSpan could not be parsed... \" ao importar planilha de frete?"
+              },
+              "slug": "why-does-the-message-the-timespan-could-not-be-parsed-appear",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why does the promised date differ from the delivery date?",
+                "es": "¿Por qué la fecha prometida diverge con la fecha de entrega?",
+                "pt": "Por que a data prometida diverge com a data de entrega?"
+              },
+              "slug": "why-does-the-promised-date-differ-from-the-delivery-date",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why doesn’t the order status update?",
+                "es": "¿Por qué el pedido no actualiza el status?",
+                "pt": "Por que o status do pedido não atualiza?"
+              },
+              "slug": "why-doesnt-the-order-status-update",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why doesn’t tracking work?",
+                "es": "¿Por qué no funciona el rastreo?",
+                "pt": "Por que o rastreio não funciona?"
+              },
+              "slug": "why-doesnt-tracking-work",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why don't I receive VTEX emails?",
+                "es": "¿Por qué no recibo los correos electrónicos de VTEX?",
+                "pt": "Por que não recebo os emails da VTEX?"
+              },
+              "slug": "why-dont-i-receive-vtex-emails",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why has my order stopped on “Ready for Handling”?",
+                "es": "¿Por qué está mi pedido parado en  \"Listo para preparar\"?",
+                "pt": "Por que meu pedido está parado em \"Preparando entrega\"?"
+              },
+              "slug": "why-has-my-order-stopped-on-ready-for-handling",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why is my freight value wrong?",
+                "es": "¿Por qué está equivocado mi valor de  flete?",
+                "pt": "Por que meu valor de frete está errado?"
+              },
+              "slug": "why-is-my-freight-value-wrong",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why is my inventory negative?",
+                "es": "¿Por qué mi inventario está negativo?",
+                "pt": "Por que meu estoque está negativo?"
+              },
+              "slug": "why-is-my-stock-negative",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why is my order with available stock failing in Orders module?",
+                "es": "¿Por qué mi pedido con stock disponible está dando error en el módulo Pedidos?",
+                "pt": "Por que meu pedido com estoque disponível está dando erro no módulo Pedidos?"
+              },
+              "slug": "why-is-my-order-with-available-stock-failing-in-orders-module",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why was my canceled order charged in the client invoice?",
+                "es": "¿Por qué se cobró en la factura del cliente mi pedido cancelado?",
+                "pt": "Por que meu pedido cancelado foi cobrado na fatura do cliente?"
+              },
+              "slug": "why-was-my-canceled-order-charged-in-the-client-invoice",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why was my order canceled?",
+                "es": "Por qué un pedido fue cancelado?",
+                "pt": "Por que meu pedido foi cancelado?"
+              },
+              "slug": "why-was-my-order-canceled",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why was my order invoiced, but the product is still reserved?",
+                "es": "¿Por qué se facturó mi pedido y sigue  reservado el producto?",
+                "pt": "Por que meu pedido foi faturado e o produto continua reservado?"
+              },
+              "slug": "why-was-my-order-invoiced-but-the-product-is-still-reserved",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": {
+            "en": "Reliability",
+            "es": "Reliability",
+            "pt": "Reliability"
+          },
+          "slug": "reliability",
+          "origin": "",
+          "type": "category",
+          "children": [
+            {
+              "name": {
+                "en": "Why is an error returned on access to the store after changing the DNS?",
+                "es": "¿Por qué recibo un error al acceder a la tienda después de configurar el DNS?",
+                "pt": "Por que aparece um erro no acesso à loja ​após virar o DNS​?"
+              },
+              "slug": "why-is-an-error-returned-on-access-to-the-store-after-changing-the-dns",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": {
+            "en": "Shopping",
+            "es": "Shopping",
+            "pt": "Shopping"
+          },
+          "slug": "shopping",
+          "origin": "",
+          "type": "category",
+          "children": [
+            {
+              "name": {
+                "en": "Blocking customizations to troubleshoot front-end issues",
+                "es": "Cómo bloquear personalizaciones para investigar problemas en el front-end de la tienda",
+                "pt": "Como bloquear customizações para investigar problemas no front-end da loja"
+              },
+              "slug": "blocking-customizations-to-troubleshoot-front-end-issues",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Checkout with \"store not found\" error. What to do?",
+                "es": "Checkout con error \"tienda no encontrada\". ¿Que hacer?",
+                "pt": "Checkout com erro \"loja não encontrada\". O que fazer?"
+              },
+              "slug": "checkout-with-store-not-found-error",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "How to add more agents in a WhatsApp link?",
+                "es": "¿Cómo agregar más agentes en un link de WhatsApp?",
+                "pt": "Como adicionar mais atendentes em um link de WhatsApp?"
+              },
+              "slug": "how-to-add-more-agents-in-a-whatsapp-link",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "How to edit a WhatsApp link?",
+                "es": "¿Cómo editar un link de WhatsApp?",
+                "pt": "Como editar um link de WhatsApp?"
+              },
+              "slug": "how-to-edit-a-whatsapp-link",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "How to find Facebook Pixel",
+                "es": "Cómo encontrar el píxel de Facebook",
+                "pt": "Como encontrar Pixel do Facebook"
+              },
+              "slug": "how-to-find-facebook-pixel",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "How to find Google Analytics Pixel?",
+                "es": "¿Cómo encontrar el píxel de Google Analytics?",
+                "pt": "Como encontrar o Pixel do Google Analytics?"
+              },
+              "slug": "how-to-find-google-analytics-pixel",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "How to find Linkedin Pixel?",
+                "es": "¿Cómo encontrar Linkedin Pixel?",
+                "pt": "Como encontrar o Pixel do Linkedin?"
+              },
+              "slug": "how-to-find-linkedin-pixel",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Locate the Google ADS pixel",
+                "es": "Localiza el píxel de Google ADS",
+                "pt": "Localize o pixel do Google ADS"
+              },
+              "slug": "locate-the-google-ads-pixel",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "My trial period is over, now what?",
+                "es": "Mi período de prueba ha terminado, ¿y ahora qué?",
+                "pt": "Meu período trial acabou e agora?"
+              },
+              "slug": "my-trial-is-over-now-what",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "UTM's",
+                "es": "UTM's",
+                "pt": "UTM's"
+              },
+              "slug": "utms",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "What is the WhatsApp link?",
+                "es": "¿Cuál es el link de WhatsApp?",
+                "pt": "O que é o link de WhatsApp?"
+              },
+              "slug": "what-is-the-whatsapp-link",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Where to use WhatsApp Link",
+                "es": "  Dónde usar el link de WhatsApp",
+                "pt": "Onde utilizar o Link de WhatsApp"
+              },
+              "slug": "where-to-use-whatsapp-link",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why does the gift appear as unavailable?",
+                "es": "¿Por qué el regalo aparece como no disponible?",
+                "pt": "Por que o brinde aparece como indisponível?"
+              },
+              "slug": "why-does-the-gift-appear-as-unavailable",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why was my client requested to log in when attempting to finalize their purchase?",
+                "es": "¿Por qué mi cliente tuvo que iniciar sesión al intentar finalizar su compra?",
+                "pt": "Por que foi solicitado que meu cliente fizesse login ao tentar finalizar sua compra?"
+              },
+              "slug": "why-was-the-user-id-requested-at-checkout-when-the-purchase-was-concluded",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            },
+            {
+              "name": {
+                "en": "Why was the item splitted in the cart?",
+                "es": "Por qué se separó el producto en el carrito?",
+                "pt": "Por que o item do carrinho foi separado?"
+              },
+              "slug": "why-was-the-item-splitted-in-the-cart",
+              "origin": "",
+              "type": "markdown",
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

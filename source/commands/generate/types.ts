@@ -40,6 +40,7 @@ export interface CrossLanguageDocument {
   pt?: ContentFile;
   slugEN: string;
   title: Partial<LocalizedString>;
+  slug: Partial<LocalizedString>;
   categories: Partial<LocalizedString>;
 }
 
@@ -108,12 +109,7 @@ export interface ValidationResult {
   };
 }
 
-export interface NavigationSection {
-  documentation: string;
-  name: LocalizedString;
-  slugPrefix: string;
-  categories: any[]; // Will be NavigationNode[] after transformation
-}
+// NavigationSection has been replaced by NavbarItem from navigation.ts
 
 export interface ScanResult {
   files: ContentFile[];

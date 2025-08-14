@@ -8,7 +8,7 @@
 		"node": ">=16"
 	},
 	"scripts": {
-		"build": "tsc",
+		"build": "tsc && cp -r source/config/*.json dist/config/",
 		"dev": "tsc --watch",
 		"test": "prettier --check . && xo && ava"
 	},
@@ -18,14 +18,10 @@
 	"dependencies": {
 		"@inkjs/ui": "^1.0.0",
 		"ajv": "^8.17.1",
-		"axios": "^1.11.0",
 		"commander": "^14.0.0",
-		"dotenv": "^17.2.1",
 		"execa": "^9.6.0",
 		"gray-matter": "^4.0.3",
 		"ink": "^4.1.0",
-		"meow": "^11.0.0",
-		"ora": "^8.2.0",
 		"react": "^18.2.0"
 	},
 	"devDependencies": {

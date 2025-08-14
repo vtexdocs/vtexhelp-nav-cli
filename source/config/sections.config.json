@@ -1,0 +1,52 @@
+{
+  "sections": {
+    "tracks": {
+      "displayName": {
+        "en": "Start here",
+        "es": "Comece aqui", 
+        "pt": "Comece aqui"
+      },
+      "slugPrefix": "docs/tracks"
+    },
+    "tutorials": {
+      "displayName": {
+        "en": "Tutorials",
+        "es": "Tutoriales",
+        "pt": "Tutoriais"
+      },
+      "slugPrefix": "docs/tutorials"
+    },
+    "announcements": {
+      "displayName": {
+        "en": "Announcements",
+        "es": "Anuncios",
+        "pt": "Anúncios"
+      },
+      "slugPrefix": "announcements"
+    },
+    "faq": {
+      "displayName": {
+        "en": "FAQ",
+        "es": "FAQ",
+        "pt": "FAQ"
+      },
+      "slugPrefix": "faq"
+    },
+    "known-issues": {
+      "displayName": {
+        "en": "Known Issues",
+        "es": "Problemas conocidos",
+        "pt": "Problemas conhecidos"
+      },
+      "slugPrefix": "known-issues"
+    },
+    "troubleshooting": {
+      "displayName": {
+        "en": "Troubleshooting",
+        "es": "Troubleshooting",
+        "pt": "Troubleshooting"
+      },
+      "slugPrefix": "troubleshooting"
+    }
+  }
+}

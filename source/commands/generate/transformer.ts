@@ -1,6 +1,7 @@
 import type { 
   NavigationNode, 
-  LocalizedString 
+  LocalizedString,
+  NavbarItem
 } from '../../types/navigation.js';
 
 // Temporary type definition
@@ -8,11 +9,11 @@ type NavigationData = any;
 import type { 
   CategoryHierarchy,
   ContentFile,
-  NavigationSection,
   GenerationOptions,
   PhaseSummary 
 } from './types.js';
 import { DualLogger } from './ui/logger.js';
+import { getSectionDisplayName, getSectionSlugPrefix } from '../../config/sections.config.js';
 
 export class NavigationTransformer {
   private logger: DualLogger;
@@ -89,10 +90,10 @@ export class NavigationTransformer {
     }
   }
 
-  private async buildNavbar(hierarchy: CategoryHierarchy): Promise<{ navbar: NavigationSection[], duplicateWarnings: string[] }> {
+  private async buildNavbar(hierarchy: CategoryHierarchy): Promise<{ navbar: NavbarItem[], duplicateWarnings: string[] }> {
     this.logger.info('Building unified multilingual navigation structure');
     
-    const sections: NavigationSection[] = [];
+    const sections: NavbarItem[] = [];
     const allDuplicateWarnings: string[] = [];
     
     for (const [sectionName, categoryMap] of Object.entries(hierarchy.sections)) {
@@ -125,13 +126,13 @@ export class NavigationTransformer {
     sectionName: string,
     categoryMap: any,
     hierarchy: CategoryHierarchy
-  ): Promise<{ section: NavigationSection | null, duplicateWarnings: string[] }> {
+  ): Promise<{ section: NavbarItem | null, duplicateWarnings: string[] }> {
     
     try {
       // Create section name mapping
       const sectionNameMap: any = {};
       for (const lang of this.options.languages) {
-        sectionNameMap[lang] = this.getSectionDisplayName(sectionName);
+        sectionNameMap[lang] = getSectionDisplayName(sectionName, lang);
       }
 
       // Create section-level slug tracking to prevent duplicates across categories
@@ -149,10 +150,10 @@ export class NavigationTransformer {
         sectionName
       );
 
-      const section: NavigationSection = {
+      const section: NavbarItem = {
         documentation: sectionName,
         name: sectionNameMap,
-        slugPrefix: `docs/${sectionName}`,
+        slugPrefix: getSectionSlugPrefix(sectionName),
         categories,
       };
 
@@ -288,77 +289,84 @@ export class NavigationTransformer {
     const fileMap = slugToFileMap || new Map<string, ContentFile>();
     const warnings = duplicateWarnings || [];
 
+    // Group files by slugEN to handle multilingual documents properly
+    const filesBySlugEN = new Map<string, ContentFile[]>();
+    const actualDuplicateSlugs = new Map<string, ContentFile[]>(); // Track actual duplicates within same section+language
+    
+    // First pass: group files and detect actual duplicates
     for (const file of files) {
-      try {
-        // Skip duplicates - only process each unique slug once (at section level)
-        const slugKey = file.metadata.slugEN || this.generateSlug(file);
+      const slugEN = file.metadata.slugEN || this.getDocumentSlug(file);
+      
+      // Group by slugEN for multilingual processing
+      if (!filesBySlugEN.has(slugEN)) {
+        filesBySlugEN.set(slugEN, []);
+      }
+      filesBySlugEN.get(slugEN)!.push(file);
+      
+      // Check for actual duplicates within the same section and language
+      const duplicateKey = `${sectionName || 'unknown'}|${file.language}|${slugEN}`;
+      if (!actualDuplicateSlugs.has(duplicateKey)) {
+        actualDuplicateSlugs.set(duplicateKey, []);
+      }
+      actualDuplicateSlugs.get(duplicateKey)!.push(file);
+    }
+
+    // Check for and report actual duplicates (multiple files with same slugEN in same section+language)
+    for (const [duplicateKey, duplicateFiles] of actualDuplicateSlugs) {
+      if (duplicateFiles.length > 1) {
+        const [section, language, slugEN] = duplicateKey.split('|');
         
-        if (processedSlugs.has(slugKey)) {
-          // Create detailed duplicate warning with comprehensive file information
-          const originalFile = fileMap.get(slugKey);
-          if (originalFile) {
-            // Create comprehensive warning message with all relevant details
-            const warningMsg = [
-              `Duplicate slug '${slugKey}' detected in section '${sectionName || 'unknown'}':`,
-              `  • Original: '${originalFile.path}'`,
-              `    - Title: "${originalFile.metadata.title}"`,
-              `    - Category: ${originalFile.category || 'None'}`,
-              `    - Subcategory: ${originalFile.subcategory || 'None'}`,
-              `    - Language: ${originalFile.language}`,
-              `  • Duplicate (SKIPPED): '${file.path}'`,
+        // Only show warnings if --show-warnings is enabled
+        if (this.options.showWarnings) {
+          const warningMsg = [
+            `True duplicate slug '${slugEN}' found in section '${section}', language '${language}':`,
+            ...duplicateFiles.map((file, index) => [
+              `  • ${index === 0 ? 'Original' : 'Duplicate ' + index}: '${file.path}'`,
               `    - Title: "${file.metadata.title}"`,
               `    - Category: ${file.category || 'None'}`,
-              `    - Subcategory: ${file.subcategory || 'None'}`,
-              `    - Language: ${file.language}`,
-              `  ➤ Resolution: Ensure each document has a unique 'slug' or 'slugEN' in its frontmatter within this section.`
-            ].join('\n');
-            
-            warnings.push(warningMsg);
-            
-            // Display detailed warning immediately in console only if showWarnings is enabled
-            if (this.options.showWarnings) {
-              this.logger.warn(`\n⚠️  DUPLICATE SLUG DETECTED:\n${warningMsg}`);
-            } else {
-              // Show brief warning without details
-              this.logger.warn(`Duplicate document slug detected: ${slugKey}`);
-            }
-            
-            // Also log structured data for debugging
-            this.logger.debug(`Duplicate document slug detected`, {
-              slug: slugKey,
-              section: sectionName,
-              originalFile: {
-                path: originalFile.path,
-                title: originalFile.metadata.title,
-                category: originalFile.category,
-                subcategory: originalFile.subcategory,
-                language: originalFile.language,
-                slugEN: originalFile.metadata.slugEN
-              },
-              duplicateFile: {
-                path: file.path,
-                title: file.metadata.title,
-                category: file.category,
-                subcategory: file.subcategory,
-                language: file.language,
-                slugEN: file.metadata.slugEN
-              }
-            });
-          }
+              `    - Subcategory: ${file.subcategory || 'None'}`
+            ].join('\n')).flat(),
+            `  ➤ Resolution: Ensure each document has a unique 'slug' or 'slugEN' within section '${section}' and language '${language}'.`
+          ].join('\n');
+          
+          warnings.push(warningMsg);
+          this.logger.warn(`\n⚠️  TRUE DUPLICATE SLUG DETECTED:\n${warningMsg}`);
+        }
+        
+        // Skip duplicate files (keep only the first one)
+        const filesToSkip = duplicateFiles.slice(1);
+        for (const fileToSkip of filesToSkip) {
+          files = files.filter(f => f !== fileToSkip);
+        }
+      }
+    }
+
+    // Second pass: process unique slugEN groups (this handles multilingual documents correctly)
+    for (const [slugEN, groupFiles] of filesBySlugEN) {
+      try {
+        // Skip duplicates - only process each unique slugEN once (at section level)
+        if (processedSlugs.has(slugEN)) {
           continue;
         }
         
-        processedSlugs.add(slugKey);
-        fileMap.set(slugKey, file);
+        const firstFile = groupFiles[0];
+        if (!firstFile) {
+          this.logger.warn(`Empty file group for slugEN: ${slugEN}`);
+          continue;
+        }
         
-        const node = await this.buildDocumentNode(file, hierarchy);
+        processedSlugs.add(slugEN);
+        fileMap.set(slugEN, firstFile); // Use first file as representative
+        
+        // Build node using the first file (they all have the same slugEN so will get the same cross-language data)
+        const node = await this.buildDocumentNode(firstFile, hierarchy);
         if (node) {
           nodes.push(node);
         }
       } catch (error) {
-        this.logger.error(`Failed to build document node: ${file.path}`, { 
+        this.logger.error(`Failed to build document node: ${groupFiles[0]?.path}`, { 
           error, 
-          file: file.fileName 
+          slugEN 
         });
       }
     }
@@ -383,19 +391,27 @@ export class NavigationTransformer {
       const crossLangDoc = hierarchy.crossLanguageMap[file.metadata.slugEN];
       
       let name: LocalizedString;
-      let slug: string;
+      let slug: LocalizedString;  // Changed to LocalizedString for documents
 
       if (crossLangDoc) {
-        // Use cross-language titles
+        // Use cross-language titles and slugs
         name = crossLangDoc.title as LocalizedString;
-        slug = file.metadata.slugEN; // Use canonical English slug
+        slug = crossLangDoc.slug as LocalizedString;
       } else {
-        // Fallback to single language
+        // Fallback to single language - fill other languages with empty strings
         name = {} as LocalizedString;
+        slug = {} as LocalizedString;
+        
         for (const lang of this.options.languages) {
-          name[lang] = file.metadata.title;
+          if (lang === file.language) {
+            name[lang] = file.metadata.title;
+            slug[lang] = this.getDocumentSlug(file);
+          } else {
+            // Use empty strings for missing languages to maintain schema consistency
+            name[lang] = '';
+            slug[lang] = '';
+          }
         }
-        slug = this.generateSlug(file);
       }
 
       const node: NavigationNode = {
@@ -419,23 +435,23 @@ export class NavigationTransformer {
     }
   }
 
-  private generateSlug(file: ContentFile): string {
-    // Generate slug from file path and metadata
-    const pathParts = [file.section];
+  private getDocumentSlug(file: ContentFile): string {
+    // Priority order: legacySlug -> filename-based
     
-    if (file.category && file.category !== 'Uncategorized') {
-      pathParts.push(this.slugify(file.category));
+    // 1. Check if legacySlug exists (preferred for localized slugs)
+    if (file.metadata['legacySlug']) {
+      return file.metadata['legacySlug'];
     }
     
-    if (file.subcategory) {
-      pathParts.push(this.slugify(file.subcategory));
-    }
-    
-    // Use slugEN if available, otherwise generate from filename
-    const docSlug = file.metadata.slugEN || this.slugify(file.fileName);
-    pathParts.push(docSlug);
-    
-    return pathParts.join('/');
+    // 2. Fallback: generate from filename
+    return this.generateSlugFromFilename(file.fileName);
+  }
+
+
+  private generateSlugFromFilename(fileName: string): string {
+    // Remove file extension and generate slug from filename
+    const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
+    return this.slugify(nameWithoutExt);
   }
 
   private slugify(text: string): string {
@@ -451,24 +467,8 @@ export class NavigationTransformer {
     return this.slugify(englishName);
   }
 
-  private getSectionDisplayName(sectionName: string): string {
-    // Map internal section names to display names
-    const sectionMap: { [key: string]: string } = {
-      tutorials: 'Tutorials',
-      tracks: 'Learning Tracks',
-      faq: 'FAQ',
-      announcements: 'Announcements',
-      troubleshooting: 'Troubleshooting',
-    };
 
-    return sectionMap[sectionName] || this.capitalize(sectionName);
-  }
-
-  private capitalize(text: string): string {
-    return text.charAt(0).toUpperCase() + text.slice(1);
-  }
-
-  private countNavigationNodes(navbar: NavigationSection[]): number {
+  private countNavigationNodes(navbar: NavbarItem[]): number {
     let count = 0;
     
     for (const section of navbar) {
