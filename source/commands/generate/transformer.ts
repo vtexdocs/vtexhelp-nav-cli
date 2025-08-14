@@ -13,7 +13,7 @@ import type {
   PhaseSummary 
 } from './types.js';
 import { DualLogger } from './ui/logger.js';
-import { getSectionDisplayName, getSectionSlugPrefix } from '../../config/sections.config.js';
+import { getSectionSlugPrefix, getSectionConfig } from '../../config/sections.config.js';
 
 export class NavigationTransformer {
   private logger: DualLogger;
@@ -129,11 +129,13 @@ export class NavigationTransformer {
   ): Promise<{ section: NavbarItem | null, duplicateWarnings: string[] }> {
     
     try {
-      // Create section name mapping
-      const sectionNameMap: any = {};
-      for (const lang of this.options.languages) {
-        sectionNameMap[lang] = getSectionDisplayName(sectionName, lang);
-      }
+      // Create section name mapping from config (already has all three languages)
+      const sectionConfig = getSectionConfig(sectionName);
+      const sectionNameMap = sectionConfig?.displayName || {
+        en: sectionName.charAt(0).toUpperCase() + sectionName.slice(1),
+        es: '',
+        pt: ''
+      };
 
       // Create section-level slug tracking to prevent duplicates across categories
       const sectionProcessedSlugs = new Set<string>();
@@ -221,7 +223,21 @@ export class NavigationTransformer {
   ): Promise<NavigationNode | null> {
     
     try {
-      const name = categoryInfo.name || {};
+      // Ensure category name has all required languages with empty string fallback
+      const rawName = categoryInfo.name || {};
+      const name: LocalizedString = {
+        en: '',
+        es: '',
+        pt: ''
+      };
+      
+      // Populate all required languages
+      for (const lang of this.options.languages) {
+        if (lang === 'en' || lang === 'es' || lang === 'pt') {
+          name[lang] = rawName[lang] || '';
+        }
+      }
+      
       const children = categoryInfo.children;
       
       // Generate category slug from name
@@ -399,18 +415,23 @@ export class NavigationTransformer {
         slug = crossLangDoc.slug as LocalizedString;
       } else {
         // Fallback to single language - fill other languages with empty strings
-        name = {} as LocalizedString;
-        slug = {} as LocalizedString;
+        name = {
+          en: '',
+          es: '',
+          pt: ''
+        };
+        slug = {
+          en: '',
+          es: '',
+          pt: ''
+        };
         
         for (const lang of this.options.languages) {
-          if (lang === file.language) {
+          if ((lang === 'en' || lang === 'es' || lang === 'pt') && lang === file.language) {
             name[lang] = file.metadata.title;
             slug[lang] = this.getDocumentSlug(file);
-          } else {
-            // Use empty strings for missing languages to maintain schema consistency
-            name[lang] = '';
-            slug[lang] = '';
           }
+          // Other languages remain empty strings (already initialized above)
         }
       }
 

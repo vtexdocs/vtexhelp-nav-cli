@@ -173,38 +173,11 @@ export class CategoryBuilder {
     // Group files by their hierarchical paths
     const hierarchicalGroups = this.groupFilesByHierarchicalPath(files);
     
-    this.logger.info(`Hierarchical groups for section ${section}:`, {
+    this.logger.debug(`Hierarchical groups for section ${section}:`, {
       groupCount: Object.keys(hierarchicalGroups).length,
-      groups: Object.keys(hierarchicalGroups).slice(0, 10),
+      sampleGroups: Object.keys(hierarchicalGroups).slice(0, 5),
       fileCount: files.length
     });
-    
-    // Debug: write groups to file for inspection
-    try {
-      const fs = await import('node:fs/promises');
-      const debugData = {
-        section,
-        fileCount: files.length,
-        groupCount: Object.keys(hierarchicalGroups).length,
-        groups: Object.fromEntries(
-          Object.entries(hierarchicalGroups).map(([path, files]) => [
-            path, 
-            {
-              fileCount: files.length,
-              sampleFiles: files.slice(0, 3).map(f => ({
-                fileName: f.fileName,
-                relativePath: f.relativePath,
-                category: f.category
-              }))
-            }
-          ])
-        )
-      };
-      await fs.writeFile('debug-hierarchical-groups.json', JSON.stringify(debugData, null, 2));
-      this.logger.info('Debug data written to debug-hierarchical-groups.json');
-    } catch (err) {
-      this.logger.warn('Failed to write debug data:', err);
-    }
     
     // Build nested category structure recursively
     for (const [fullPath, groupFiles] of Object.entries(hierarchicalGroups)) {
@@ -220,54 +193,22 @@ export class CategoryBuilder {
   private groupFilesByHierarchicalPath(files: ContentFile[]): { [fullPath: string]: ContentFile[] } {
     const grouped: { [fullPath: string]: ContentFile[] } = {};
     
-    let debugCount = 0;
     for (const file of files) {
       // The relativePath is already relative to the section directory (e.g., "B2B/Overview/b2b-overview.md")
       // So we just need to extract the directory path (excluding the filename)
       const pathSegments = file.relativePath.split(path.sep);
-      
-      if (debugCount < 5) {
-        this.logger.info(`Sample file path analysis:`, {
-          fileName: file.fileName,
-          relativePath: file.relativePath,
-          pathSegments,
-          pathSegmentsLength: pathSegments.length
-        });
-        debugCount++;
-      }
       
       // Get all path segments except the last one (which is the filename)
       if (pathSegments.length > 1) {
         const categorySegments = pathSegments.slice(0, -1);
         const fullPath = categorySegments.join('/');
         
-        if (debugCount <= 5) {
-          this.logger.info(`Path extracted:`, {
-            categorySegments,
-            fullPath,
-            fileName: file.fileName,
-            isValidPath: Boolean(fullPath)
-          });
-        }
-        
         if (fullPath) {
           if (!grouped[fullPath]) {
             grouped[fullPath] = [];
           }
           grouped[fullPath]!.push(file);
-        } else if (debugCount <= 5) {
-          this.logger.warn(`Empty fullPath for file:`, {
-            fileName: file.fileName,
-            relativePath: file.relativePath,
-            categorySegments
-          });
         }
-      } else if (debugCount <= 5) {
-        this.logger.warn(`File directly in section root (no subdirectory):`, {
-          fileName: file.fileName,
-          relativePath: file.relativePath,
-          pathSegments
-        });
       }
     }
     
