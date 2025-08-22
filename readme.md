@@ -6,7 +6,7 @@ A comprehensive command-line tool for both **generating** and **viewing** VTEX d
 
 ### 🏗️ Navigation Generation
 - 🤖 **Intelligent Generation**: Automatically generates navigation from VTEX Help Center content repository
-- 🎯 **Dual Modes**: Choose between interactive (with UI) or simple (console-only) generation
+- 🎯 **Simple Generation**: Console-only generator focused on speed and clarity
 - 🌍 **Multi-language Support**: Processes English, Spanish, and Portuguese content with proper localized slugs
 - 🔗 **Cross-language Linking**: Automatically links related documents across languages
 - 📝 **Smart Slug Generation**: Prioritizes `legacySlug` → filename-based → empty string for missing translations
@@ -35,9 +35,11 @@ npx vtexhelp-nav-cli
 
 ## Usage
 
+Note: The executable name is vtex-nav (alias: vtexhelp-nav-cli).
+
 ### 🏗️ Navigation Generation
 
-The CLI offers two modes for generating navigation files from the VTEX Help Center content repository:
+The CLI currently provides a simple, console-only generation command:
 
 #### Simple Mode (Recommended for CI/CD)
 ```bash
@@ -51,14 +53,6 @@ vtexhelp-nav gen --output custom-nav.json --verbose --force
 vtexhelp-nav gen --languages en,es --report
 ```
 
-#### Interactive Mode (Rich UI Experience)
-```bash
-# Generate with full interactive dashboard
-vtexhelp-nav generate
-
-# Generate in non-interactive mode (same as simple)
-vtexhelp-nav generate --no-interactive
-```
 
 #### Generation Options
 ```
@@ -68,13 +62,13 @@ Options:
   --validate                 Validate against existing navigation schema (default: true)
   --report                   Generate detailed report (default: false)
   --fix                      Auto-fix common issues (default: false)
-  -l, --languages <langs>    Comma-separated languages to process (default: "en,es,pt")
+  -l, --languages <langs>    Comma-separated languages to process (en,es,pt) (default: "en,es,pt")
   -s, --sections <sections>  Comma-separated sections to process (leave empty for all)
   -v, --verbose              Show detailed log lines in terminal (default: false)
   -b, --branch <branch>      Git branch to clone (default: "main")
   -f, --force                Force overwrite existing content directory (default: false)
   --log-file <file>          Export detailed logs to file
-  --no-interactive           Disable interactive UI (for generate command only)
+  --show-warnings            Display detailed analysis of all warnings (default: false)
 ```
 
 ### 🌳 Viewing Navigation
@@ -82,14 +76,14 @@ Options:
 #### Basic Viewer Usage
 
 ```bash
-# Run with default settings (downloads navigation.json to current directory)
-vtexhelp-nav
+# Run the interactive viewer (downloads navigation.json if not present)
+vtex-nav view
 
 # Use a specific navigation file
-vtexhelp-nav --file ./custom-navigation.json
+vtex-nav view --file ./custom-navigation.json
 
 # Start in a specific language
-vtexhelp-nav --language es
+vtex-nav view --language es
 ```
 
 #### Viewer Options
@@ -211,58 +205,51 @@ vtexhelp-nav-cli/
 ### 🏗️ Generation Workflow
 
 ```bash
-# 1. Generate navigation in simple mode (perfect for CI/CD)
-vtexhelp-nav gen --verbose --report --output production-nav.json
+# 1. Generate navigation (perfect for CI/CD)
+vtex-nav gen --verbose --report --output production-nav.json
 
 # 2. Generate with custom branch and specific languages
-vtexhelp-nav gen --branch develop --languages en,pt --force
+vtex-nav gen --branch develop --languages en,pt --force
 
-# 3. Interactive generation with full dashboard
-vtexhelp-nav generate --output interactive-nav.json
-
-# 4. Validate generated file
-vtexhelp-nav view --file production-nav.json
+# 3. Validate generated file
+vtex-nav view --file production-nav.json
 ```
 
 ### 🌳 Viewer Workflow
 
 ```bash
 # 1. Quick view with auto-download
-vtexhelp-nav
+vtex-nav view
 
 # 2. Browse specific navigation file
-vtexhelp-nav --file ./my-navigation.json --language es
+vtex-nav view --file ./my-navigation.json --language es
 
 # 3. Compare different navigation structures
-vtexhelp-nav --file ./old-nav.json
-vtexhelp-nav --file ./new-nav.json
+vtex-nav view --file ./old-nav.json
+vtex-nav view --file ./new-nav.json
 ```
 
 ### 🔄 Full Development Cycle
 
 ```bash
 # Generate fresh navigation
-vtexhelp-nav gen --verbose --report --output latest-nav.json
+vtex-nav gen --verbose --report --output latest-nav.json
 
 # Inspect and validate the structure
-vtexhelp-nav --file latest-nav.json
+vtex-nav view --file latest-nav.json
 
 # Generate detailed report for review
-vtexhelp-nav gen --report --log-file generation.log
+vtex-nav gen --report --log-file generation.log
 ```
 
 ## Architecture
 
-### 🎯 Generation Modes Comparison
+### 🎯 Generation Mode
 
-| Feature | Simple Mode (`gen`) | Interactive Mode (`generate`) |
-|---------|--------------------|--------------------------|
-| **UI** | Console logging only | Full Ink dashboard with progress bars |
-| **Performance** | ~13% faster (23s avg) | Slower due to UI overhead (26s avg) |
-| **Output** | Clean, structured logs | Rich visual feedback |
-| **Use Case** | CI/CD, automation, scripts | Development, manual runs |
-| **Process Management** | Clean exit, no zombies | Ink lifecycle management |
-| **Memory Usage** | Lower | Higher (UI components) |
+- Simple mode (gen): console logging, optimized performance, clean output
+- Designed for CI/CD and automation
+- Use --verbose for detailed logs and --show-warnings for in-depth analysis
+- No interactive generation mode is available at the moment
 
 ### 🏗️ Generation Pipeline
 
