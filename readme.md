@@ -195,7 +195,7 @@ vtexhelp-nav-cli/
 │   │   └── config.ts                  # Configuration management
 │   └── utils/
 │       └── validateSchema.ts          # Schema validation utilities
-├── schema/
+├── source/schemas/
 │   └── navigation.schema.json         # JSON schema for validation
 └── dist/                              # Compiled TypeScript output
 ```

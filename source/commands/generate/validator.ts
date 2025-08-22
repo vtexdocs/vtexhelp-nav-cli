@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import Ajv from 'ajv';
 // Temporary type definition
 type NavigationData = any;
@@ -118,8 +119,12 @@ export class NavigationValidator {
     const warnings: string[] = [];
 
     try {
-      // Load navigation schema
-      const schemaPath = path.resolve(process.cwd(), 'source/schemas/navigation.schema.json');
+      // Load navigation schema relative to this file so it works in both src and dist
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      // ../../schemas from source/commands/generate -> source/schemas
+      // and the same ../../schemas from dist/commands/generate -> dist/schemas
+      const schemaPath = path.join(__dirname, '../../schemas/navigation.schema.json');
       const schemaContent = await fs.readFile(schemaPath, 'utf8');
       const schema = JSON.parse(schemaContent);
 

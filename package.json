@@ -11,13 +11,15 @@
 		"node": ">=16"
 	},
 	"scripts": {
-		"build": "tsc && cp -r source/config/*.json dist/config/ && chmod +x dist/cli.js",
+		"build": "tsc && mkdir -p dist/config dist/schemas && (cp -r source/config/*.json dist/config/ || true) && (cp -r source/schemas/*.json dist/schemas/ || true) && chmod +x dist/cli.js",
 		"dev": "tsc --watch",
 		"test": "prettier --check . && xo && ava",
 		"start": "node dist/cli.js",
 		"cli": "node dist/cli.js",
 		"nav:gen": "node dist/cli.js gen",
-		"nav:view": "node dist/cli.js view"
+		"nav:view": "node dist/cli.js view",
+		"prepare": "npm run build",
+		"prepublishOnly": "npm run build"
 	},
 	"files": [
 		"dist"
