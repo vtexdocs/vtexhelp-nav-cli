@@ -18,7 +18,7 @@
 		"cli": "node dist/cli.js",
 		"nav:gen": "node dist/cli.js gen",
 		"nav:view": "node dist/cli.js view",
-		"prepare": "npm run build",
+		"prepare": "sh -c 'if [ -d dist ]; then echo dist exists, skipping build; else echo dist missing, attempting build; npm run build || true; fi'",
 		"prepublishOnly": "npm run build"
 	},
 	"files": [
