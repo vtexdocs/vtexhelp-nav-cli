@@ -240,8 +240,8 @@ export class NavigationTransformer {
       
       const children = categoryInfo.children;
       
-      // Generate category slug from name
-      const slug = this.generateCategorySlug(name);
+      // Generate category slug from name, avoiding conflicts with child document slugs
+      const slug = this.generateCategorySlug(name, children);
 
       if (Array.isArray(children)) {
         // This is a category with documents
@@ -482,10 +482,30 @@ export class NavigationTransformer {
       .replace(/^-+|-+$/g, '');
   }
 
-  private generateCategorySlug(name: LocalizedString): string {
+  private generateCategorySlug(name: LocalizedString, children?: any): string {
     // Use English name for slug generation, fallback to first available language
     const englishName = name.en || Object.values(name)[0] || 'category';
-    return this.slugify(englishName);
+    let baseSlug = this.slugify(englishName);
+    
+    // Check if any child documents have the same slug to avoid conflicts
+    if (Array.isArray(children)) {
+      const childSlugs = children.map((file: any) => {
+        // Use the same logic as getDocumentSlug to get the actual final slug
+        return this.getDocumentSlug(file);
+      });
+      
+      // If base slug conflicts with any child slug, append "-category" suffix
+      if (childSlugs.includes(baseSlug)) {
+        baseSlug = `${baseSlug}-category`;
+        this.logger.debug(`Category slug conflict resolved`, {
+          originalSlug: this.slugify(englishName),
+          resolvedSlug: baseSlug,
+          conflictingChildSlugs: childSlugs.filter(s => s === this.slugify(englishName))
+        });
+      }
+    }
+    
+    return baseSlug;
   }
 
 

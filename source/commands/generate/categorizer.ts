@@ -422,13 +422,34 @@ export class CategoryBuilder {
   private groupFilesByCanonicalCategory(section: string, files: ContentFile[]): { [canonicalSlug: string]: ContentFile[] } {
     const grouped: { [canonicalSlug: string]: ContentFile[] } = {};
     
+    // For tracks, create a mapping from trackId to canonical English slug
+    const trackIdToSlugMap: { [trackId: string]: string } = {};
+    
+    if (section === 'tracks') {
+      // First pass: build trackId to canonical slug mapping using English files
+      for (const file of files) {
+        if (file.language === 'en' && file.metadata['trackId']) {
+          const trackId = file.metadata['trackId'] as string;
+          if (!trackIdToSlugMap[trackId]) {
+            // Use the English folder name as canonical slug
+            const pathSegments = file.relativePath.split(path.sep);
+            const tracksIndex = pathSegments.indexOf('tracks');
+            if (tracksIndex >= 0 && tracksIndex + 1 < pathSegments.length) {
+              trackIdToSlugMap[trackId] = pathSegments[tracksIndex + 1] || 'uncategorized';
+            }
+          }
+        }
+      }
+    }
+    
     for (const file of files) {
       // Determine the canonical category identifier
       let canonicalSlug: string;
       
-      if (section === 'tracks' && file.metadata['trackSlugEN']) {
-        // For tracks, use trackSlugEN as the canonical identifier
-        canonicalSlug = file.metadata['trackSlugEN'];
+      if (section === 'tracks' && file.metadata['trackId']) {
+        // For tracks, use the canonical English slug from our mapping
+        const trackId = file.metadata['trackId'] as string;
+        canonicalSlug = trackIdToSlugMap[trackId] || trackId;
       } else {
         // For other sections, extract canonical slug from path - but prioritize English folder names
         canonicalSlug = this.extractCanonicalSlugWithEnglishFallback(file, files);
@@ -444,6 +465,7 @@ export class CategoryBuilder {
         language: file.language,
         canonicalSlug,
         section,
+        trackId: file.metadata['trackId'],
         trackSlugEN: file.metadata['trackSlugEN'],
       });
     }
@@ -470,7 +492,11 @@ export class CategoryBuilder {
     const pathSegments = file.relativePath.split(path.sep);
     
     if (file.section === 'tracks') {
-      // For tracks: get the folder name after 'tracks' from English version or fallback to current
+      // For tracks: use trackId as the canonical identifier
+      if (file.metadata['trackId']) {
+        return file.metadata['trackId'] as string;
+      }
+      // Fallback: get the folder name after 'tracks' from English version or fallback to current
       const tracksIndex = pathSegments.indexOf('tracks');
       if (tracksIndex >= 0 && tracksIndex + 1 < pathSegments.length) {
         return pathSegments[tracksIndex + 1] || 'uncategorized';
