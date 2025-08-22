@@ -158,6 +158,15 @@ npm run build
 npm run dev
 ```
 
+### Temporary caches and external repositories
+
+This project clones content repositories locally for generation. These folders are temporary, ignored by Git, and can be safely deleted at any time:
+
+- .vtexhelp-content — VTEX Help Center content clone
+- .vtexhelp-known-issues — Known issues repository clone used for categorization
+
+If either folder is missing, the generator will fetch it automatically when needed.
+
 ### Project Structure
 
 ```
@@ -176,6 +185,7 @@ vtexhelp-nav-cli/
 │   │       ├── categorizer.ts         # Category hierarchy builder
 │   │       ├── linker.ts              # Cross-language document linker
 │   │       ├── transformer.ts         # Navigation format transformer
+│   │       ├── external-repositories.ts # Handles cloning/using external content repos
 │   │       ├── validator.ts           # Navigation validation engine
 │   │       ├── types.ts               # Generation-specific types
 │   │       └── ui/                    # Interactive UI components

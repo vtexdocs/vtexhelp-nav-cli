@@ -9,5 +9,6 @@ dist
 navigation.json
 generated-navigation.json
 
-# Cloned content repository
+# Temporary cloned repositories (not tracked)
 .vtexhelp-content
+.vtexhelp-known-issues
