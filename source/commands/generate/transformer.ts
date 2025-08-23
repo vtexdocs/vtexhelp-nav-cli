@@ -246,8 +246,8 @@ export class NavigationTransformer {
       
       const children = categoryInfo.children;
       
-      // Generate category slug from name, avoiding conflicts with child document slugs
-      const slug = this.generateCategorySlug(name, children);
+      // Generate per-locale category slugs from localized names, avoiding conflicts with child document slugs per locale
+      const slug = this.generateLocalizedCategorySlugs(name, children);
 
       if (Array.isArray(children)) {
         // This is a category with documents
@@ -267,8 +267,8 @@ export class NavigationTransformer {
         
         return {
           name,
-          // Categories now require localized slugs with empty-string placeholders
-          slug: typeof slug === 'string' ? ({ en: slug, es: '', pt: '' } as unknown as any) : slug,
+          // Categories now require localized slugs; all locales filled from localized names with conflict resolution
+          slug: slug,
           origin: '',
           type: 'category',
           children: documents,
@@ -291,7 +291,7 @@ export class NavigationTransformer {
         
         return {
           name,
-          slug: typeof slug === 'string' ? ({ en: slug, es: '', pt: '' } as unknown as any) : slug,
+          slug: slug,
           origin: '',
           type: 'category',
           children: subcategoryNodes,
@@ -557,30 +557,49 @@ export class NavigationTransformer {
     return Array.from(bySlug.values());
   }
 
-  private generateCategorySlug(name: LocalizedString, children?: any): string {
-    // Use English name for slug generation, fallback to first available language
-    const englishName = name.en || Object.values(name)[0] || 'category';
-    let baseSlug = this.slugify(englishName);
-    
-    // Check if any child documents have the same slug to avoid conflicts
+  private generateLocalizedCategorySlugs(name: LocalizedString, children?: any): LocalizedString {
+    const locales: Array<keyof LocalizedString> = ['en','es','pt'];
+
+    // Start with slugified localized names (fallback chain to ensure non-empty)
+    const slugs: any = {
+      en: this.slugify(name.en || name.es || name.pt || 'category'),
+      es: this.slugify(name.es || name.en || name.pt || 'category'),
+      pt: this.slugify(name.pt || name.en || name.es || 'category'),
+    };
+
+    // If this is a leaf category with document children, gather child slugs per locale
     if (Array.isArray(children)) {
-      const childSlugs = children.map((file: any) => {
-        // Use the same logic as getDocumentSlug to get the actual final slug
-        return this.getDocumentSlug(file);
-      });
-      
-      // If base slug conflicts with any child slug, append "-category" suffix
-      if (childSlugs.includes(baseSlug)) {
-        baseSlug = `${baseSlug}-category`;
-        this.logger.debug(`Category slug conflict resolved`, {
-          originalSlug: this.slugify(englishName),
-          resolvedSlug: baseSlug,
-          conflictingChildSlugs: childSlugs.filter(s => s === this.slugify(englishName))
-        });
+      const childSlugsByLocale: Record<string, Set<string>> = { en: new Set(), es: new Set(), pt: new Set() };
+      for (const file of children) {
+        try {
+          const docSlug = this.getDocumentSlug(file);
+          const lang = (file?.language || 'en') as keyof LocalizedString;
+          if (childSlugsByLocale[lang]) childSlugsByLocale[lang]!.add(docSlug);
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      // Resolve conflicts per locale, mirroring the behavior across all locales
+      for (const loc of locales) {
+        const set = childSlugsByLocale[loc] || new Set<string>();
+        let candidate = slugs[loc];
+        let iterations = 0;
+        while (set.has(candidate) && iterations < 3) { // prevent runaway loops
+          candidate = `${candidate}-category`;
+          iterations++;
+        }
+        if (candidate !== slugs[loc]) {
+          this.logger.debug(`Category slug conflict resolved for locale ${loc}`, {
+            original: slugs[loc],
+            resolved: candidate,
+          });
+        }
+        slugs[loc] = candidate;
       }
     }
-    
-    return baseSlug;
+
+    return slugs as LocalizedString;
   }
 
 

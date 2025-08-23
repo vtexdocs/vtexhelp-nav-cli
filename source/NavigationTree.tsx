@@ -55,15 +55,25 @@ export const NavigationTree: React.FC<NavigationTreeProps> = ({ navigation, init
 
       if (expandedItems.has(sectionId)) {
         const processNode = (
-          node: NavigationNode, 
-          parentId: string, 
-          depth: number, 
+          node: NavigationNode,
+          parentId: string,
+          depth: number,
           path: string[]
         ) => {
-          const nodeSlug = typeof node.slug === 'string' 
-            ? node.slug 
-            : node.slug[currentLanguage];
-          const nodeId = `${parentId}/${nodeSlug}`;
+          // Use a stable, locale-agnostic identifier so expanding one node
+          // does not toggle all siblings when localized slugs are empty.
+          const getStableSlug = (n: NavigationNode): string => {
+            if (typeof n.slug === 'string' && n.slug) return n.slug;
+            const s = (n.slug as any) || {};
+            const raw = s.en || s.es || s.pt || '';
+            const source = raw || (n.name?.en || n.name?.es || n.name?.pt || 'node');
+            return String(source)
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-+|-+$/g, '');
+          };
+          const nodeSlug = getStableSlug(node);
+          const nodeId = `${parentId}/${node.type}-${nodeSlug}`;
           const nodeName = node.name[currentLanguage];
           const nodePath = [...path, nodeName];
           
