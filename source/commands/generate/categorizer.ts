@@ -170,7 +170,7 @@ export class CategoryBuilder {
   private async buildHierarchicalCategories(section: string, files: ContentFile[]): Promise<CategoryMap> {
     const categoryMap: CategoryMap = {};
     
-    // Group files by their hierarchical paths
+    // Group files by their canonical (English-based) hierarchical paths across languages
     const hierarchicalGroups = this.groupFilesByHierarchicalPath(files);
     
     this.logger.debug(`Hierarchical groups for section ${section}:`, {
@@ -194,30 +194,60 @@ export class CategoryBuilder {
     const grouped: { [fullPath: string]: ContentFile[] } = {};
     
     for (const file of files) {
-      // The relativePath is already relative to the section directory (e.g., "B2B/Overview/b2b-overview.md")
-      // So we just need to extract the directory path (excluding the filename)
-      const pathSegments = file.relativePath.split(path.sep);
+      // Derive a canonical hierarchical path based on the English version of the document when available.
+      // This ensures that categories from different languages are merged under the same canonical path.
+      const canonicalSegments = this.extractCanonicalHierarchicalPathWithEnglishFallback(file, files);
+      if (canonicalSegments.length === 0) continue;
+      const fullPath = canonicalSegments.join('/');
       
-      // Get all path segments except the last one (which is the filename)
-      if (pathSegments.length > 1) {
-        const categorySegments = pathSegments.slice(0, -1);
-        const fullPath = categorySegments.join('/');
-        
-        if (fullPath) {
-          if (!grouped[fullPath]) {
-            grouped[fullPath] = [];
-          }
-          grouped[fullPath]!.push(file);
+      if (fullPath) {
+        if (!grouped[fullPath]) {
+          grouped[fullPath] = [];
         }
+        grouped[fullPath]!.push(file);
       }
     }
     
-    this.logger.info(`Total grouped paths: ${Object.keys(grouped).length}`);
+    this.logger.info(`Total grouped paths (canonical): ${Object.keys(grouped).length}`);
     if (Object.keys(grouped).length > 0) {
       this.logger.info(`Sample grouped paths: ${Object.keys(grouped).slice(0, 5)}`);
     }
     
     return grouped;
+  }
+
+  private extractCanonicalHierarchicalPathWithEnglishFallback(file: ContentFile, allFiles: ContentFile[]): string[] {
+    // Try to find the English version of this document (same slugEN and section)
+    let baseFile: ContentFile | undefined = file;
+    if (file.language !== 'en') {
+      baseFile = allFiles.find(
+        (f) => f.language === 'en' && f.section === file.section && f.metadata.slugEN === file.metadata.slugEN
+      ) || undefined;
+
+      // If there's no English version, pick the first available from preferred fallback order (es -> pt)
+      if (!baseFile) {
+        const fallbackOrder: Array<ContentFile['language']> = ['es', 'pt'];
+        for (const lang of fallbackOrder) {
+          const candidate = allFiles.find(
+            (f) => f.language === lang && f.section === file.section && f.metadata.slugEN === file.metadata.slugEN
+          );
+          if (candidate) {
+            baseFile = candidate;
+            break;
+          }
+        }
+      }
+
+      // If still not found, use the current file
+      baseFile = baseFile || file;
+    }
+
+    // relativePath is already relative to docs/<lang>/<section>, so we can take its directory segments
+    const relPath = baseFile.relativePath;
+    const dirPath = path.dirname(relPath);
+    if (!dirPath || dirPath === '.' || dirPath === '') return [];
+    const segments = dirPath.split(path.sep).filter(Boolean);
+    return segments;
   }
 
   private buildNestedCategoryFromPath(
