@@ -210,7 +210,13 @@ export class NavigationTransformer {
       }
     }
 
-    return nodes;
+    // Drop categories that ended up empty after pruning
+    const nonEmpty = nodes.filter(n => Array.isArray((n as any).children) && (n as any).children.length > 0);
+
+    // Merge categories by the English slug so categories are localized entities
+    const merged = this.mergeCategoryNodeLists(nonEmpty);
+
+    return merged;
   }
 
   private async buildNavigationNode(
@@ -254,9 +260,15 @@ export class NavigationTransformer {
           sectionName
         );
         
+        // Prune empty categories (no leaf documents)
+        if (!documents || documents.length === 0) {
+          return null;
+        }
+        
         return {
           name,
-          slug,
+          // Categories now require localized slugs with empty-string placeholders
+          slug: typeof slug === 'string' ? ({ en: slug, es: '', pt: '' } as unknown as any) : slug,
           origin: '',
           type: 'category',
           children: documents,
@@ -272,9 +284,14 @@ export class NavigationTransformer {
           sectionName
         );
         
+        // Prune empty categories (no subcategories/documents)
+        if (!subcategoryNodes || subcategoryNodes.length === 0) {
+          return null;
+        }
+        
         return {
           name,
-          slug,
+          slug: typeof slug === 'string' ? ({ en: slug, es: '', pt: '' } as unknown as any) : slug,
           origin: '',
           type: 'category',
           children: subcategoryNodes,
@@ -482,6 +499,62 @@ export class NavigationTransformer {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
+  }
+
+  private mergeCategoryNodeLists(nodes: NavigationNode[]): NavigationNode[] {
+    const bySlug = new Map<string, NavigationNode>();
+
+    const mergeNames = (target: any, src: any) => {
+      for (const lang of ['en','es','pt']) {
+        if (!target?.[lang] && src?.[lang]) {
+          target[lang] = src[lang];
+        }
+      }
+    };
+
+    // Helper to deduplicate document children by English slug
+    const dedupeDocs = (items: NavigationNode[]): NavigationNode[] => {
+      const docMap = new Map<string, NavigationNode>();
+      for (const it of items) {
+        if ((it as any).type === 'markdown') {
+          const key = ((it as any).slug?.en) || JSON.stringify((it as any).slug);
+          if (!docMap.has(key)) docMap.set(key, it);
+        }
+      }
+      return Array.from(docMap.values());
+    };
+
+    for (const node of nodes) {
+      if ((node as any).type !== 'category') continue; // should not happen here
+      const slugVal = (node as any).slug as any;
+      const key = typeof slugVal === 'string' ? slugVal : (slugVal?.en || JSON.stringify(slugVal));
+      if (!bySlug.has(key)) {
+        // clone shallow
+        bySlug.set(key, {
+          ...node,
+          name: { ...(node as any).name },
+          children: Array.isArray(node.children) ? [...node.children] : []
+        } as NavigationNode);
+      } else {
+        const existing = bySlug.get(key)! as any;
+        // merge localized names
+        mergeNames(existing.name, (node as any).name);
+        // merge children
+        const mergedChildren = [
+          ...(existing.children || []),
+          ...((node as any).children || [])
+        ] as NavigationNode[];
+
+        // Recursively merge category children by slug; docs dedup by slug
+        const categoryChildren = mergedChildren.filter(ch => (ch as any).type === 'category');
+        const docChildren = mergedChildren.filter(ch => (ch as any).type === 'markdown');
+        const mergedCategoryChildren = this.mergeCategoryNodeLists(categoryChildren);
+        const dedupedDocs = dedupeDocs(docChildren);
+        existing.children = [...mergedCategoryChildren, ...dedupedDocs];
+      }
+    }
+
+    return Array.from(bySlug.values());
   }
 
   private generateCategorySlug(name: LocalizedString, children?: any): string {

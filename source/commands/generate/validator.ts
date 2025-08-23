@@ -40,6 +40,11 @@ export class NavigationValidator {
       errors.push(...schemaValidation.errors);
       warnings.push(...schemaValidation.warnings);
 
+      // Custom structural checks we care about
+      const custom = this.customChecks(navigationData);
+      errors.push(...custom.errors);
+      warnings.push(...custom.warnings);
+
       // Basic content consistency checks
       const contentValidation = await this.validateContent(navigationData);
       warnings.push(...contentValidation.warnings);
@@ -165,6 +170,44 @@ export class NavigationValidator {
 
 
 
+
+  private customChecks(navigationData: NavigationData): { errors: string[]; warnings: string[] } {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Check sibling category english slug uniqueness per parent
+    const checkCategoryUniq = (nodes: any[], path: string[]) => {
+      const seen = new Map<string, number>();
+      for (const n of nodes || []) {
+        if (n?.type === 'category') {
+          const key = typeof n.slug === 'string' ? n.slug : n.slug?.en || '';
+          if (key) {
+            const prev = seen.get(key) || 0;
+            seen.set(key, prev + 1);
+          }
+        }
+      }
+      for (const [k, count] of seen) {
+        if (count > 1) {
+          errors.push(`Duplicate category englishSlug '${k}' among siblings at ${path.join(' > ')}`);
+        }
+      }
+      for (const n of nodes || []) {
+        if (n?.type === 'category' && Array.isArray(n.children)) {
+          checkCategoryUniq(n.children, [...path, (n.name?.en || '(category)')]);
+        }
+      }
+    };
+
+    // Run per section
+    for (const section of navigationData.navbar || []) {
+      if (Array.isArray(section.categories)) {
+        checkCategoryUniq(section.categories, [section.documentation || 'section']);
+      }
+    }
+
+    return { errors, warnings };
+  }
 
   private async validateContent(navigationData: NavigationData): Promise<{ warnings: string[] }> {
     const warnings: string[] = [];

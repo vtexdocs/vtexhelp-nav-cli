@@ -62,6 +62,7 @@ Options:
   --validate                 Validate against existing navigation schema (default: true)
   --report                   Generate detailed report (default: false)
   --fix                      Auto-fix common issues (default: false)
+  --strict                   Fail generation when validation errors are found (default: false)
   -l, --languages <langs>    Comma-separated languages to process (en,es,pt) (default: "en,es,pt")
   -s, --sections <sections>  Comma-separated sections to process (leave empty for all)
   -v, --verbose              Show detailed log lines in terminal (default: false)
@@ -70,6 +71,29 @@ Options:
   --log-file <file>          Export detailed logs to file
   --show-warnings            Display detailed analysis of all warnings (default: false)
 ```
+
+### ✅ Validation
+
+Validate a navigation.json file (schema + custom cross-node checks):
+
+```bash
+# Validate and print issues (non-zero exit only if --strict)
+vtex-nav validate ./public/navigation.json
+
+# Fail the build if any errors are found
+vtex-nav validate ./public/navigation.json --strict
+```
+
+What’s validated:
+- Structural JSON Schema (Draft-07)
+  - name and slug are LocalizedString objects with en, es, pt keys
+  - Categories: type=category, children min 1
+  - Documents: type=markdown, children must be empty
+  - Additional properties are rejected for safety
+- Custom rule: sibling categories under the same parent must have unique english slug (slug.en)
+
+Notes:
+- Empty strings are allowed in LocalizedString fields to indicate a missing translation. This keeps the structure consistent while signalling gaps.
 
 ### 🌳 Viewing Navigation
 
@@ -241,6 +265,25 @@ vtex-nav view --file latest-nav.json
 # Generate detailed report for review
 vtex-nav gen --report --log-file generation.log
 ```
+
+## Schema overview
+
+LocalizedString
+- Keys: en, es, pt
+- Value: string (can be empty to indicate missing translation)
+
+NavigationNode
+- name: LocalizedString
+- slug: LocalizedString
+- type: "category" | "markdown"
+- children: NavigationNode[]
+- Rules:
+  - category: children.length >= 1
+  - markdown: children.length == 0
+
+Merging and duplicates
+- Categories across languages are merged by their English slug (slug.en), treating categories as localized entities.
+- Within the same parent, sibling category english slugs must be unique; duplicates are flagged by validation.
 
 ## Architecture
 

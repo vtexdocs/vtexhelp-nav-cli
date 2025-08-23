@@ -43,6 +43,8 @@ export class SimpleNavigationGenerator {
       force: options.force ?? false,
       showWarnings: options.showWarnings ?? false
     };
+    // carry through non-typed flags
+    (this.options as any).strict = (options as any).strict ?? false;
     
     this.startTime = Date.now();
     this.logger = new DualLogger(this.options);
@@ -129,6 +131,10 @@ export class SimpleNavigationGenerator {
       const validationResult = await this.validateAndOutput(navigationData);
       if (!validationResult) {
         this.log('error', 'Validation failed');
+        return false;
+      }
+      if (this.options.validate && (this.options as any).strict && !validationResult.valid) {
+        this.log('error', 'Strict mode: validation errors present. Aborting.');
         return false;
       }
 
@@ -407,6 +413,20 @@ export class SimpleNavigationGenerator {
         report += `- ⚠️ ${warning}\n`;
       });
     }
+
+    // Slug mismatch summary extracted from collected warnings/logs
+    const slugMismatch = this.logger
+      .getLogs('warn')
+      .map(l => l.message)
+      .filter(m => typeof m === 'string' && m.startsWith('SLUG_MISMATCH:'))
+
+    if (slugMismatch.length > 0) {
+      report += `\n## Slug mismatches (filename vs frontmatter)\n\n`;
+      slugMismatch.forEach((m) => {
+        report += `- ${m}\n`;
+      });
+      report += `\n> The generator used the filename-based slug for these entries to ensure runtime consistency.\n`;
+    }
     
     return report;
   }
@@ -469,6 +489,16 @@ export class SimpleNavigationGenerator {
     
     // Add our own warning about special sections
     this.allWarnings.push('[GENERATION] Special sections handling not yet implemented');
+
+    // Add slug mismatch warnings extracted from logs so we can print a summary later
+    const slugMismatchLogs = this.logger
+      .getLogs('warn')
+      .map(l => l.message)
+      .filter(m => typeof m === 'string' && m.startsWith('SLUG_MISMATCH:'))
+    
+    for (const msg of slugMismatchLogs) {
+      this.allWarnings.push(`[SLUG] ${msg}`)
+    }
   }
   
   private displayWarnings() {

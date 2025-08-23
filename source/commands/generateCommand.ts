@@ -4,20 +4,7 @@ import generateSimple from './generate-simple.js';
 
 const DEFAULT_CONTENT_DIR = '.vtexhelp-content';
 
-interface GenerateCommandOptions {
-  contentDir?: string;
-  output?: string;
-  validate?: boolean;
-  report?: boolean;
-  fix?: boolean;
-  languages?: string;
-  sections?: string;
-  logFile?: string;
-  verbose?: boolean;
-  branch?: string;
-  force?: boolean;
-  showWarnings?: boolean;
-}
+// Using inline 'any' types in the action handler to avoid over-constraining CLI options.
 
 export function createSimpleGenerateCommand() {
   const generateSimpleCmd = new Command('gen')
@@ -27,6 +14,7 @@ export function createSimpleGenerateCommand() {
     .option('--validate', 'Validate against existing navigation schema', true)
     .option('--report', 'Generate detailed report', false)
     .option('--fix', 'Auto-fix common issues', false)
+    .option('--strict', 'Fail generation when validation errors are found', false)
     .option('-l, --languages <langs>', 'Comma-separated languages to process (en,es,pt)', 'en,es,pt')
     .option('-s, --sections <sections>', 'Comma-separated sections to process (leave empty for all)')
     .option('-v, --verbose', 'Show detailed log lines in terminal', false)
@@ -34,18 +22,18 @@ export function createSimpleGenerateCommand() {
     .option('-f, --force', 'Force overwrite existing content directory', false)
     .option('--log-file <file>', 'Export detailed logs to file')
     .option('--show-warnings', 'Display detailed analysis of all warnings', false)
-    .action(async (options: Omit<GenerateCommandOptions, 'noInteractive'>) => {
+    .action(async (options: any) => {
       try {
         // Parse language list
         const languages = options.languages
           ?.split(',')
-          .map(lang => lang.trim() as Language)
-          .filter(lang => ['en', 'es', 'pt'].includes(lang)) || ['en', 'es', 'pt'];
+          .map((lang: string) => lang.trim() as Language)
+          .filter((lang: string) => ['en', 'es', 'pt'].includes(lang)) || ['en', 'es', 'pt'];
 
         // Parse sections list  
         const sections = options.sections
           ?.split(',')
-          .map(section => section.trim())
+          .map((section: string) => section.trim())
           .filter(Boolean) || [];
 
         // Run the simple generation
@@ -62,6 +50,8 @@ export function createSimpleGenerateCommand() {
           force: options.force,
           logFile: options.logFile,
           showWarnings: options.showWarnings,
+          // pass through strict flag (not typed in GenerationOptions)
+          ...(options.strict ? { strict: true } : {})
         });
 
       } catch (error) {

@@ -24,7 +24,7 @@ export interface NavigationNode {
   /** Localized name of the node */
   name: LocalizedString;
   
-  /** URL slug - can be either a simple string or localized object */
+  /** URL slug - localized object (strings can be used during build but output is localized) */
   slug: string | LocalizedString;
   
   /** Origin field (typically empty string) */
