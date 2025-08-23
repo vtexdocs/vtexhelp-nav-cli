@@ -5,10 +5,12 @@
   "description": "Schema for VTEX documentation portal navigation structure",
   "type": "object",
   "required": ["navbar"],
+  "additionalProperties": false,
   "properties": {
     "navbar": {
       "type": "array",
       "description": "Top-level navigation sections",
+      "minItems": 1,
       "items": {
         "$ref": "#/definitions/navbarItem"
       }
@@ -19,6 +21,7 @@
       "type": "object",
       "description": "A top-level navigation section",
       "required": ["documentation", "name", "slugPrefix", "categories"],
+      "additionalProperties": false,
       "properties": {
         "documentation": {
           "type": "string",
@@ -37,6 +40,7 @@
         "categories": {
           "type": "array",
           "description": "Categories within this section",
+          "minItems": 1,
           "items": {
             "$ref": "#/definitions/navigationNode"
           }
@@ -47,6 +51,7 @@
       "type": "object",
       "description": "A navigation node that can be either a category or a document",
       "required": ["name", "slug", "type", "children"],
+      "additionalProperties": false,
       "properties": {
         "name": {
           "$ref": "#/definitions/localizedString",
@@ -54,16 +59,10 @@
         },
         "slug": {
           "oneOf": [
-            {
-              "type": "string",
-              "description": "Simple slug string"
-            },
-            {
-              "$ref": "#/definitions/localizedString",
-              "description": "Localized slug object"
-            }
+            { "$ref": "#/definitions/localizedString" },
+            { "type": "string" }
           ],
-          "description": "URL slug for this node (can be string or localized object)"
+          "description": "URL slug for this node (localized object is preferred)"
         },
         "origin": {
           "type": "string",
@@ -82,25 +81,36 @@
             "$ref": "#/definitions/navigationNode"
           }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "category" } } },
+          "then": {
+            "properties": {
+              "slug": { "$ref": "#/definitions/localizedString" },
+              "children": { "type": "array", "minItems": 1 }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "markdown" } } },
+          "then": {
+            "properties": {
+              "slug": { "$ref": "#/definitions/localizedString" },
+              "children": { "type": "array", "maxItems": 0 }
+            }
+          }
+        }
+      ]
     },
     "localizedString": {
       "type": "object",
       "description": "Object containing localized strings for different languages",
       "required": ["en", "es", "pt"],
       "properties": {
-        "en": {
-          "type": "string",
-          "description": "English translation"
-        },
-        "es": {
-          "type": "string",
-          "description": "Spanish translation"
-        },
-        "pt": {
-          "type": "string",
-          "description": "Portuguese translation"
-        }
+        "en": { "type": "string" },
+        "es": { "type": "string" },
+        "pt": { "type": "string" }
       },
       "additionalProperties": false
     }

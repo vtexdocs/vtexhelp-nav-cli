@@ -4,6 +4,7 @@ import React from 'react';
 import {render} from 'ink';
 import App from './app.js';
 import { createSimpleGenerateCommand } from './commands/generateCommand.js';
+import { createValidateCommand } from './commands/validateCommand.js';
 
 const program = new Command()
   .name('vtexhelp-nav')
@@ -31,5 +32,8 @@ program
 
 // Add generate command (simple mode only)
 program.addCommand(createSimpleGenerateCommand());
+
+// Add validate command
+program.addCommand(createValidateCommand());
 
 program.parse();
