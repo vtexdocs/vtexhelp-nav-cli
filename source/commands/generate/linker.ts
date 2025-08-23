@@ -168,12 +168,19 @@ export class CrossLanguageLinker {
       // Build localized title
       crossLangDoc.title[lang] = file.metadata.title;
       
-      // Build localized slug using priority order: legacySlug -> filename-based -> empty string
-      let localSlug = file.metadata['legacySlug'];
-      if (!localSlug) {
-        localSlug = this.generateSlugFromFilename(file.fileName);
+      // Determine both the filename-based slug and legacy/frontmatter slug
+      const filenameSlug = this.generateSlugFromFilename(file.fileName);
+      const legacySlug = file.metadata['legacySlug'];
+
+      // If there's a mismatch, prefer the filename-based slug for generator output
+      // and surface a warning that the action can parse.
+      let chosenSlug = filenameSlug;
+      if (legacySlug && legacySlug !== filenameSlug) {
+        const warnMsg = `SLUG_MISMATCH: frontmatter legacySlug ('${legacySlug}') != filename slug ('${filenameSlug}') for ${file.path}`;
+        this.logger.warn(warnMsg);
       }
-      crossLangDoc.slug[lang] = localSlug;
+
+      crossLangDoc.slug[lang] = chosenSlug;
       
       // Build localized category path
       const categoryPath = this.buildCategoryPath(file);
