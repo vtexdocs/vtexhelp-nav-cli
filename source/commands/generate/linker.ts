@@ -1,3 +1,4 @@
+import * as slugifyLib from 'slugify';
 import type { Language } from '../../types/navigation.js';
 import type { 
   ContentFile, 
@@ -295,10 +296,12 @@ export class CrossLanguageLinker {
   }
 
   private slugify(text: string): string {
-    return text
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+    return (slugifyLib as any).default(text, {
+      lower: true,      // Convert to lowercase
+      strict: true,     // Strip special characters except replacement
+      locale: 'en',     // Use English transliteration rules (works for PT/ES too)
+      trim: true        // Trim leading/trailing replacement chars
+    });
   }
 
   private updateCategoryLocalization(
