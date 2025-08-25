@@ -147,7 +147,7 @@ export class CategoryBuilder {
       const categoryPath = `${section}/${canonicalSlug}`;
       
       // Create localized category name from files in different languages
-      const localizedName = this.createLocalizedCategoryNameFromFiles(categoryFiles);
+      const localizedName = await this.createLocalizedCategoryNameFromFiles(categoryFiles);
       
       categoryMap[categoryPath] = {
         name: localizedName,
@@ -182,7 +182,7 @@ export class CategoryBuilder {
     // Build nested category structure recursively
     for (const [fullPath, groupFiles] of Object.entries(hierarchicalGroups)) {
       this.logger.debug(`Building path: ${fullPath} with ${groupFiles.length} files`);
-      this.buildNestedCategoryFromPath(categoryMap, section, fullPath, groupFiles);
+      await this.buildNestedCategoryFromPath(categoryMap, section, fullPath, groupFiles);
     }
     
     this.logger.info(`Created ${Object.keys(categoryMap).length} top-level categories in hierarchical map`);
@@ -250,12 +250,12 @@ export class CategoryBuilder {
     return segments;
   }
 
-  private buildNestedCategoryFromPath(
+  private async buildNestedCategoryFromPath(
     categoryMap: CategoryMap, 
     section: string, 
     fullPath: string, 
     files: ContentFile[]
-  ): void {
+  ): Promise<void> {
     const pathParts = fullPath.split('/');
     let currentPath = section;
     let currentMap = categoryMap;
@@ -269,7 +269,7 @@ export class CategoryBuilder {
       // Create the category if it doesn't exist
       if (!currentMap[levelPath]) {
         // Create localized name for this category level
-        const localizedName = this.createLocalizedCategoryNameForPath(
+        const localizedName = await this.createLocalizedCategoryNameForPath(
           pathPart, 
           files, 
           pathParts.slice(0, i + 1)
@@ -304,11 +304,11 @@ export class CategoryBuilder {
     }
   }
 
-  private createLocalizedCategoryNameForPath(
+  private async createLocalizedCategoryNameForPath(
     pathSegment: string, 
     files: ContentFile[], 
     pathContext: string[]
-  ): LocalizedString {
+  ): Promise<LocalizedString> {
     const localized: any = {};
     
     // Group files by language to extract localized names
@@ -319,7 +319,7 @@ export class CategoryBuilder {
       
       if (languageFiles.length > 0) {
         // Try to extract the localized folder name from files in this language
-        const localizedName = this.extractLocalizedFolderName(
+        const localizedName = await this.extractLocalizedFolderName(
           languageFiles[0]!, 
           pathSegment, 
           pathContext
@@ -329,7 +329,7 @@ export class CategoryBuilder {
         // Fallback to English files or normalized path segment
         const englishFiles = filesByLanguage['en'] || [];
         if (englishFiles.length > 0) {
-          const englishName = this.extractLocalizedFolderName(
+          const englishName = await this.extractLocalizedFolderName(
             englishFiles[0]!, 
             pathSegment, 
             pathContext
@@ -337,7 +337,7 @@ export class CategoryBuilder {
           localized[language] = englishName;
         } else {
           // Last resort: normalize the path segment
-          localized[language] = this.normalizeCategoryName(pathSegment);
+          localized[language] = await this.normalizeCategoryName(pathSegment);
         }
       }
     }
@@ -345,11 +345,11 @@ export class CategoryBuilder {
     return localized as LocalizedString;
   }
 
-  private extractLocalizedFolderName(
+  private async extractLocalizedFolderName(
     file: ContentFile, 
     pathSegment: string, 
     pathContext: string[]
-  ): string {
+  ): Promise<string> {
     // The relativePath is already relative to the section directory (e.g., "B2B/Overview/b2b-overview.md")
     // So we can directly use the path segments
     const pathSegments = file.relativePath.split(path.sep);
@@ -362,12 +362,12 @@ export class CategoryBuilder {
     if (contextDepth >= 0 && contextDepth < categorySegments.length) {
       const localizedSegment = categorySegments[contextDepth];
       if (localizedSegment) {
-        return this.normalizeCategoryName(localizedSegment);
+        return await this.normalizeCategoryName(localizedSegment);
       }
     }
     
     // Fallback to normalizing the path segment
-    return this.normalizeCategoryName(pathSegment);
+    return await this.normalizeCategoryName(pathSegment);
   }
 
 
@@ -385,7 +385,7 @@ export class CategoryBuilder {
     return grouped;
   }
 
-  private extractLocalizedCategoryName(file: ContentFile, fallbackName: string): string {
+  private async extractLocalizedCategoryName(file: ContentFile, fallbackName: string): Promise<string> {
     // First prioritize the parsed category field if available
     if (file.category && file.category.trim() !== '') {
       return file.category;
@@ -423,17 +423,37 @@ export class CategoryBuilder {
     }
     
     // Normalize the extracted name
-    return this.normalizeCategoryName(categoryNameFromPath);
+    return await this.normalizeCategoryName(categoryNameFromPath);
   }
 
-  private normalizeCategoryName(name: string): string {
+  private async normalizeCategoryName(name: string): Promise<string> {
     // Convert kebab-case or snake_case to Title Case
-    return name
-      .replace(/[-_]/g, ' ')
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
+    const words = name.replace(/[-_]/g, ' ').split(' ');
+    const normalizedWords: string[] = [];
+    
+    for (const word of words) {
+      // Check if word is a known acronym using the comprehensive dictionary
+      const lowerWord = word.toLowerCase();
+      const acronymCase = await this.getAcronymCase(lowerWord);
+      if (acronymCase) {
+        normalizedWords.push(acronymCase);
+      } else {
+        // Regular title case for other words
+        normalizedWords.push(word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+      }
+    }
+    
+    return normalizedWords.join(' ');
   }
+
+  /**
+   * Get the proper case for an acronym from our comprehensive dictionary
+   */
+  private async getAcronymCase(word: string): Promise<string | undefined> {
+    const { VTEX_ACRONYMS } = await import('../../config/acronyms.js');
+    return VTEX_ACRONYMS[word.toLowerCase()];
+  }
+
 
 
   private countCategories(categoryMap: CategoryMap): number {
@@ -551,7 +571,7 @@ export class CategoryBuilder {
     return file.category || pathSegments[pathSegments.length - 2] || 'uncategorized';
   }
 
-  private createLocalizedCategoryNameFromFiles(files: ContentFile[]): LocalizedString {
+  private async createLocalizedCategoryNameFromFiles(files: ContentFile[]): Promise<LocalizedString> {
     const localized: any = {};
     
     // Group files by language
@@ -562,19 +582,19 @@ export class CategoryBuilder {
       
       if (languageFiles.length > 0) {
         // Extract localized category name using the working logic that prioritizes file.category
-        const localizedName = this.extractLocalizedCategoryName(languageFiles[0]!, 'Unknown Category');
+        const localizedName = await this.extractLocalizedCategoryName(languageFiles[0]!, 'Unknown Category');
         localized[language] = localizedName;
       } else {
         // If no files in this language, try to find the canonical English name or use fallback
         const englishFiles = filesByLanguage['en'] || [];
         if (englishFiles.length > 0) {
-          const englishName = this.extractLocalizedCategoryName(englishFiles[0]!, 'Unknown Category');
+          const englishName = await this.extractLocalizedCategoryName(englishFiles[0]!, 'Unknown Category');
           localized[language] = englishName;
         } else {
           // Last resort: use the first available file's category name
           const anyFile = files[0];
           if (anyFile) {
-            const fallbackName = this.extractLocalizedCategoryName(anyFile, 'Unknown Category');
+            const fallbackName = await this.extractLocalizedCategoryName(anyFile, 'Unknown Category');
             localized[language] = fallbackName;
           } else {
             localized[language] = 'Unknown Category';
