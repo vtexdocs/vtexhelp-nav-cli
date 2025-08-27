@@ -377,10 +377,13 @@ export class CategoryBuilder {
       const trackDir = pathSegments[1];
       
       // Build the full path to the track directory
-      const basePath = path.dirname(path.dirname(file.path)); // Go up to language dir
+      // The file.path already includes the language and section, so we just need to
+      // go up to the track directory (remove the filename part)
+      const fileDir = path.dirname(file.path);
       
       if (trackTopicDir && trackDir) {
-        return path.join(basePath, file.section, trackTopicDir, trackDir);
+        // fileDir is already: .vtexhelp-content/docs/en/tracks/[track-topic]/[track-name]
+        return fileDir;
       }
     }
     
