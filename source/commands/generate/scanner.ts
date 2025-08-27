@@ -10,6 +10,7 @@ import type {
 } from './types.js';
 import { DualLogger } from './ui/logger.js';
 import { getSupportedLanguages, getSupportedSections } from '../../config/sections.config.js';
+import { normalizeCategoryName } from '../../utils/categoryNormalization.js';
 
 export class ContentScanner {
   private logger: DualLogger;
@@ -225,8 +226,8 @@ export class ContentScanner {
         relativePath,
         language,
         section,
-        category: this.normalizeCategoryName(category),
-        subcategory: subcategory ? this.normalizeCategoryName(subcategory) : undefined,
+        category: normalizeCategoryName(category),
+        subcategory: subcategory ? normalizeCategoryName(subcategory) : undefined,
         fileName: path.basename(filePath, '.md'),
         metadata: {
           ...frontmatter,
@@ -242,13 +243,6 @@ export class ContentScanner {
     }
   }
 
-  private normalizeCategoryName(name: string | undefined): string {
-    if (!name) return 'Uncategorized';
-    return name
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  }
 
   /**
    * Scan a specific content directory (main content or external repos)

@@ -8,6 +8,7 @@ import type {
   PhaseSummary 
 } from './types.js';
 import { DualLogger } from './ui/logger.js';
+import { normalizeCategoryNameAsync as normalizeCategoryName } from '../../utils/categoryNormalization.js';
 
 export class CategoryBuilder {
   private logger: DualLogger;
@@ -337,7 +338,7 @@ export class CategoryBuilder {
           localized[language] = englishName;
         } else {
           // Last resort: normalize the path segment
-          localized[language] = await this.normalizeCategoryName(pathSegment);
+          localized[language] = await normalizeCategoryName(pathSegment);
         }
       }
     }
@@ -362,12 +363,12 @@ export class CategoryBuilder {
     if (contextDepth >= 0 && contextDepth < categorySegments.length) {
       const localizedSegment = categorySegments[contextDepth];
       if (localizedSegment) {
-        return await this.normalizeCategoryName(localizedSegment);
+        return await normalizeCategoryName(localizedSegment);
       }
     }
     
     // Fallback to normalizing the path segment
-    return await this.normalizeCategoryName(pathSegment);
+    return await normalizeCategoryName(pathSegment);
   }
 
 
@@ -423,36 +424,9 @@ export class CategoryBuilder {
     }
     
     // Normalize the extracted name
-    return await this.normalizeCategoryName(categoryNameFromPath);
+    return await normalizeCategoryName(categoryNameFromPath);
   }
 
-  private async normalizeCategoryName(name: string): Promise<string> {
-    // Convert kebab-case or snake_case to Title Case
-    const words = name.replace(/[-_]/g, ' ').split(' ');
-    const normalizedWords: string[] = [];
-    
-    for (const word of words) {
-      // Check if word is a known acronym using the comprehensive dictionary
-      const lowerWord = word.toLowerCase();
-      const acronymCase = await this.getAcronymCase(lowerWord);
-      if (acronymCase) {
-        normalizedWords.push(acronymCase);
-      } else {
-        // Regular title case for other words
-        normalizedWords.push(word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
-      }
-    }
-    
-    return normalizedWords.join(' ');
-  }
-
-  /**
-   * Get the proper case for an acronym from our comprehensive dictionary
-   */
-  private async getAcronymCase(word: string): Promise<string | undefined> {
-    const { VTEX_ACRONYMS } = await import('../../config/acronyms.js');
-    return VTEX_ACRONYMS[word.toLowerCase()];
-  }
 
 
 
