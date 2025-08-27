@@ -128,53 +128,23 @@ export class CategoryBuilder {
   }
 
   private async buildSectionCategories(section: string, files: ContentFile[]): Promise<CategoryMap> {
-    if (section === 'tutorials') {
-      // Use hierarchical categorization for tutorials due to nested folder structure
-      return this.buildHierarchicalCategories(section, files);
-    } else {
-      // Use flat categorization for other sections like tracks
-      return this.buildFlatCategories(section, files);
-    }
+    // Use unified hierarchical processing for all sections
+    // This ensures proper cross-language unification and respects nested structures
+    return this.buildUnifiedCategories(section, files);
   }
 
-  private async buildFlatCategories(section: string, files: ContentFile[]): Promise<CategoryMap> {
-    const categoryMap: CategoryMap = {};
-
-    // Group files by canonical category identifier (for tracks, use trackSlugEN; for others use English folder name)
-    const canonicalCategories = this.groupFilesByCanonicalCategory(section, files);
-    
-    // Build unified categories with localized names
-    for (const [canonicalSlug, categoryFiles] of Object.entries(canonicalCategories)) {
-      const categoryPath = `${section}/${canonicalSlug}`;
-      
-      // Create localized category name from files in different languages
-      const localizedName = await this.createLocalizedCategoryNameFromFiles(categoryFiles);
-      
-      categoryMap[categoryPath] = {
-        name: localizedName,
-        children: categoryFiles,
-        path: categoryPath,
-        level: 1,
-      };
-
-      this.logger.debug(`Created unified category: ${categoryPath}`, {
-        canonicalSlug,
-        fileCount: categoryFiles.length,
-        languages: [...new Set(categoryFiles.map(f => f.language))],
-        localizedNames: localizedName,
-      });
-    }
-
-    return categoryMap;
-  }
-
-  private async buildHierarchicalCategories(section: string, files: ContentFile[]): Promise<CategoryMap> {
+  /**
+   * Unified category processing that handles both flat and hierarchical structures
+   * with proper cross-language unification for all sections
+   */
+  private async buildUnifiedCategories(section: string, files: ContentFile[]): Promise<CategoryMap> {
     const categoryMap: CategoryMap = {};
     
-    // Group files by their canonical (English-based) hierarchical paths across languages
-    const hierarchicalGroups = this.groupFilesByHierarchicalPath(files);
+    // Group files by their canonical hierarchical paths across languages
+    // This works for both flat (single level) and nested (multi-level) structures
+    const hierarchicalGroups = this.groupFilesByUnifiedHierarchicalPath(section, files);
     
-    this.logger.debug(`Hierarchical groups for section ${section}:`, {
+    this.logger.debug(`Unified hierarchical groups for section ${section}:`, {
       groupCount: Object.keys(hierarchicalGroups).length,
       sampleGroups: Object.keys(hierarchicalGroups).slice(0, 5),
       fileCount: files.length
@@ -182,23 +152,27 @@ export class CategoryBuilder {
     
     // Build nested category structure recursively
     for (const [fullPath, groupFiles] of Object.entries(hierarchicalGroups)) {
-      this.logger.debug(`Building path: ${fullPath} with ${groupFiles.length} files`);
+      this.logger.debug(`Building unified path: ${fullPath} with ${groupFiles.length} files`);
       await this.buildNestedCategoryFromPath(categoryMap, section, fullPath, groupFiles);
     }
     
-    this.logger.info(`Created ${Object.keys(categoryMap).length} top-level categories in hierarchical map`);
+    this.logger.info(`Created ${Object.keys(categoryMap).length} top-level categories in unified map`);
     
     return categoryMap;
   }
 
-  private groupFilesByHierarchicalPath(files: ContentFile[]): { [fullPath: string]: ContentFile[] } {
+  /**
+   * Groups files by their canonical hierarchical path for unified processing
+   * Handles section-specific directory structures and cross-language unification
+   */
+  private groupFilesByUnifiedHierarchicalPath(section: string, files: ContentFile[]): { [fullPath: string]: ContentFile[] } {
     const grouped: { [fullPath: string]: ContentFile[] } = {};
     
     for (const file of files) {
-      // Derive a canonical hierarchical path based on the English version of the document when available.
-      // This ensures that categories from different languages are merged under the same canonical path.
-      const canonicalSegments = this.extractCanonicalHierarchicalPathWithEnglishFallback(file, files);
+      // Extract canonical hierarchical path based on section type and cross-language unification
+      const canonicalSegments = this.extractUnifiedCanonicalPath(section, file, files);
       if (canonicalSegments.length === 0) continue;
+      
       const fullPath = canonicalSegments.join('/');
       
       if (fullPath) {
@@ -209,47 +183,154 @@ export class CategoryBuilder {
       }
     }
     
-    this.logger.info(`Total grouped paths (canonical): ${Object.keys(grouped).length}`);
+    this.logger.info(`Total unified grouped paths for ${section}: ${Object.keys(grouped).length}`);
     if (Object.keys(grouped).length > 0) {
-      this.logger.info(`Sample grouped paths: ${Object.keys(grouped).slice(0, 5)}`);
+      this.logger.info(`Sample unified paths: ${Object.keys(grouped).slice(0, 3)}`);
     }
     
     return grouped;
   }
 
-  private extractCanonicalHierarchicalPathWithEnglishFallback(file: ContentFile, allFiles: ContentFile[]): string[] {
-    // Try to find the English version of this document (same slugEN and section)
-    let baseFile: ContentFile | undefined = file;
+  /**
+   * Extracts canonical path segments for any section type with proper cross-language unification
+   */
+  private extractUnifiedCanonicalPath(section: string, file: ContentFile, allFiles: ContentFile[]): string[] {
+    // For all sections, find the canonical folder structure using English as the reference
+    let canonicalFile: ContentFile | undefined = file;
+    
+    // Always try to use the English version as the canonical reference for folder structure
     if (file.language !== 'en') {
-      baseFile = allFiles.find(
+      canonicalFile = allFiles.find(
         (f) => f.language === 'en' && f.section === file.section && f.metadata.slugEN === file.metadata.slugEN
-      ) || undefined;
+      );
 
-      // If there's no English version, pick the first available from preferred fallback order (es -> pt)
-      if (!baseFile) {
+      // If there's no English version, use the first available from preferred fallback order
+      if (!canonicalFile) {
         const fallbackOrder: Array<ContentFile['language']> = ['es', 'pt'];
         for (const lang of fallbackOrder) {
           const candidate = allFiles.find(
             (f) => f.language === lang && f.section === file.section && f.metadata.slugEN === file.metadata.slugEN
           );
           if (candidate) {
-            baseFile = candidate;
+            canonicalFile = candidate;
             break;
           }
         }
       }
 
       // If still not found, use the current file
-      baseFile = baseFile || file;
+      canonicalFile = canonicalFile || file;
     }
 
-    // relativePath is already relative to docs/<lang>/<section>, so we can take its directory segments
-    const relPath = baseFile.relativePath;
-    const dirPath = path.dirname(relPath);
-    if (!dirPath || dirPath === '.' || dirPath === '') return [];
-    const segments = dirPath.split(path.sep).filter(Boolean);
-    return segments;
+    // Extract directory segments using the canonical file's folder structure
+    return this.extractCanonicalCategoryPath(section, canonicalFile);
   }
+
+  /**
+   * Extract canonical category path using the canonical file's folder structure
+   * This ensures proper cross-language unification for all sections
+   */
+  private extractCanonicalCategoryPath(section: string, canonicalFile: ContentFile): string[] {
+    const dirPath = path.dirname(canonicalFile.relativePath);
+    
+    if (!dirPath || dirPath === '.' || dirPath === '') {
+      return [];
+    }
+    
+    const segments = dirPath.split(path.sep).filter(Boolean);
+    
+    // Map English folder names to canonical identifiers to handle cross-language unification
+    const canonicalSegments = segments.map(segment => {
+      return this.normalizeCanonicalSegment(segment);
+    });
+    
+    if (section === 'tracks') {
+      // Tracks: tracks/[track-topic]/[track-name] -> hierarchical processing
+      // This handles the Track Topics > Tracks > Track Articles structure
+      return canonicalSegments; // Keep full hierarchy: ['marketplace', 'integrating-with-google-shopping']
+    } else if (section === 'tutorials') {
+      // Tutorials: tutorials/[category]/[subcategory]/... -> hierarchical processing  
+      return canonicalSegments; // Keep full hierarchy: ['b2b', 'overview']
+    } else {
+      // Other sections (FAQ, troubleshooting, etc.): section/[category] -> flat with unification
+      // Take only the first level but normalize for cross-language unification
+      return canonicalSegments.slice(0, 1); // Just the canonical category: ['store-operations']
+    }
+  }
+  
+  /**
+   * Normalize folder segment to canonical identifier for cross-language unification
+   * Maps different language folder names to a single canonical identifier
+   */
+  private normalizeCanonicalSegment(segment: string): string {
+    // Convert to lowercase and normalize common patterns
+    const normalized = segment.toLowerCase()
+      .replace(/[àáâãäå]/g, 'a')
+      .replace(/[èéêë]/g, 'e')
+      .replace(/[ìíîï]/g, 'i')
+      .replace(/[òóôõö]/g, 'o')
+      .replace(/[ùúûü]/g, 'u')
+      .replace(/[ç]/g, 'c')
+      .replace(/[ñ]/g, 'n')
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+    
+    // Specific mappings for known category translations
+    const categoryMappings: { [key: string]: string } = {
+      // Troubleshooting categories
+      'operaciones-de-la-tienda': 'store-operations',
+      'operacoes-da-loja': 'store-operations',
+      'integraciones': 'integrations',
+      'integracoes': 'integrations',
+      
+      // Tutorial categories (some common ones)
+      'catalogo': 'catalog', // Spanish/Portuguese catalog
+      'facturas': 'billing',
+      'faturas': 'billing',
+      'pagos': 'payments',
+      'pagamentos': 'payments',
+      'envio': 'shipping', // Spanish/Portuguese shipping
+      'configuraciones-de-la-tienda': 'store-settings',
+      'configuracoes-da-loja': 'store-settings',
+      'gestion-de-la-cuenta': 'account-management',
+      'gerenciamento-da-conta': 'account-management',
+      'acerca-de-admin': 'about-the-admin',
+      'sobre-o-admin': 'about-the-admin',
+      'autenticacion': 'authentication',
+      'autenticacao': 'authentication',
+      'centro-de-mensajes': 'message-center',
+      'central-de-mensagens': 'message-center',
+      'comercio-unificado': 'unified-commerce',
+      'tasas-y-promociones': 'promotions-and-taxes',
+      'promocoes-e-taxas': 'promotions-and-taxes',
+      'politicas-comerciales': 'trade-policies',
+      'politicas-comerciais': 'trade-policies',
+      'proyectos-e-integraciones': 'projects-and-integrations',
+      'projetos-e-integracoes': 'projects-and-integrations',
+      'sugerencias': 'suggestions',
+      'sugestoes': 'suggestions',
+      'suscripciones': 'subscriptions',
+      'assinaturas': 'subscriptions',
+      'operativo': 'operational',
+      'operacional': 'operational',
+      'otros': 'other',
+      'outros': 'other',
+      'precios': 'prices',
+      'precos': 'prices',
+      'pedidos': 'orders',
+      'infraestructura': 'infrastructure',
+      'infraestrutura': 'infrastructure',
+      'seguridad': 'security',
+      'seguranca': 'security',
+      'soporte': 'support',
+      'suporte': 'support',
+    };
+    
+    // Return mapped canonical identifier or normalized segment
+    return categoryMappings[normalized] || normalized;
+  }
+
 
   private async buildNestedCategoryFromPath(
     categoryMap: CategoryMap, 
@@ -386,46 +467,6 @@ export class CategoryBuilder {
     return grouped;
   }
 
-  private async extractLocalizedCategoryName(file: ContentFile, fallbackName: string): Promise<string> {
-    // First prioritize the parsed category field if available
-    if (file.category && file.category.trim() !== '') {
-      return file.category;
-    }
-    
-    // Extract the category folder name from the file's path for this language
-    const pathSegments = file.relativePath.split(path.sep);
-    
-    // Find the category segment - look for the folder name that matches the category structure
-    // For tracks: docs/[lang]/tracks/[category-name]/...
-    // For tutorials: docs/[lang]/tutorials/[section]/[category-name]/...
-    // For faq: docs/[lang]/faq/[category-name]/...
-    
-    let categoryNameFromPath = fallbackName;
-    
-    if (file.section === 'tracks') {
-      // For tracks: get the folder name after 'tracks'
-      const tracksIndex = pathSegments.indexOf('tracks');
-      if (tracksIndex >= 0 && tracksIndex + 1 < pathSegments.length) {
-        categoryNameFromPath = pathSegments[tracksIndex + 1] || fallbackName;
-      }
-    } else if (file.section === 'tutorials') {
-      // For tutorials: get the last folder name before the file
-      const fileDir = path.dirname(file.relativePath);
-      const dirSegments = fileDir.split(path.sep);
-      if (dirSegments.length > 0) {
-        categoryNameFromPath = dirSegments[dirSegments.length - 1] || fallbackName;
-      }
-    } else if (file.section === 'faq') {
-      // For FAQ: get the folder name after 'faq'
-      const faqIndex = pathSegments.indexOf('faq');
-      if (faqIndex >= 0 && faqIndex + 1 < pathSegments.length) {
-        categoryNameFromPath = pathSegments[faqIndex + 1] || fallbackName;
-      }
-    }
-    
-    // Normalize the extracted name
-    return await normalizeCategoryName(categoryNameFromPath);
-  }
 
 
 
@@ -443,142 +484,6 @@ export class CategoryBuilder {
     return count;
   }
 
-  private groupFilesByCanonicalCategory(section: string, files: ContentFile[]): { [canonicalSlug: string]: ContentFile[] } {
-    const grouped: { [canonicalSlug: string]: ContentFile[] } = {};
-    
-    // For tracks, create a mapping from trackId to canonical English slug
-    const trackIdToSlugMap: { [trackId: string]: string } = {};
-    
-    if (section === 'tracks') {
-      // First pass: build trackId to canonical slug mapping using English files
-      for (const file of files) {
-        if (file.language === 'en' && file.metadata['trackId']) {
-          const trackId = file.metadata['trackId'] as string;
-          if (!trackIdToSlugMap[trackId]) {
-            // Use the English folder name as canonical slug
-            const pathSegments = file.relativePath.split(path.sep);
-            const tracksIndex = pathSegments.indexOf('tracks');
-            if (tracksIndex >= 0 && tracksIndex + 1 < pathSegments.length) {
-              trackIdToSlugMap[trackId] = pathSegments[tracksIndex + 1] || 'uncategorized';
-            }
-          }
-        }
-      }
-    }
-    
-    for (const file of files) {
-      // Determine the canonical category identifier
-      let canonicalSlug: string;
-      
-      if (section === 'tracks' && file.metadata['trackId']) {
-        // For tracks, use the canonical English slug from our mapping
-        const trackId = file.metadata['trackId'] as string;
-        canonicalSlug = trackIdToSlugMap[trackId] || trackId;
-      } else {
-        // For other sections, extract canonical slug from path - but prioritize English folder names
-        canonicalSlug = this.extractCanonicalSlugWithEnglishFallback(file, files);
-      }
-      
-      if (!grouped[canonicalSlug]) {
-        grouped[canonicalSlug] = [];
-      }
-      grouped[canonicalSlug]?.push(file);
-      
-      this.logger.debug(`Grouped file into canonical category`, {
-        file: file.fileName,
-        language: file.language,
-        canonicalSlug,
-        section,
-        trackId: file.metadata['trackId'],
-        trackSlugEN: file.metadata['trackSlugEN'],
-      });
-    }
-    
-    return grouped;
-  }
-
-  private extractCanonicalSlugWithEnglishFallback(file: ContentFile, allFiles: ContentFile[]): string {
-    // First try to find the English version of this document to get canonical slug
-    const englishFiles = allFiles.filter(f => f.language === 'en' && f.metadata.slugEN === file.metadata.slugEN);
-    
-    if (englishFiles.length > 0) {
-      const englishFile = englishFiles[0];
-      // Use the English file's folder structure as canonical
-      return this.extractCanonicalSlug(englishFile!);
-    }
-    
-    // Fallback to the current file's structure
-    return this.extractCanonicalSlug(file);
-  }
-
-  private extractCanonicalSlug(file: ContentFile): string {
-    // Extract canonical slug from file path or metadata
-    const pathSegments = file.relativePath.split(path.sep);
-    
-    if (file.section === 'tracks') {
-      // For tracks: use trackId as the canonical identifier
-      if (file.metadata['trackId']) {
-        return file.metadata['trackId'] as string;
-      }
-      // Fallback: get the folder name after 'tracks' from English version or fallback to current
-      const tracksIndex = pathSegments.indexOf('tracks');
-      if (tracksIndex >= 0 && tracksIndex + 1 < pathSegments.length) {
-        return pathSegments[tracksIndex + 1] || 'uncategorized';
-      }
-    } else if (file.section === 'faq') {
-      // For FAQ: get the folder name after 'faq'
-      const faqIndex = pathSegments.indexOf('faq');
-      if (faqIndex >= 0 && faqIndex + 1 < pathSegments.length) {
-        return pathSegments[faqIndex + 1] || 'uncategorized';
-      }
-    } else if (file.section === 'tutorials') {
-      // For tutorials: use the full path after 'tutorials' to create a unique canonical slug
-      const tutorialsIndex = pathSegments.indexOf('tutorials');
-      if (tutorialsIndex >= 0 && tutorialsIndex + 1 < pathSegments.length) {
-        // Get all path segments after 'tutorials' except the last one (which is the file name)
-        const categoryPath = pathSegments.slice(tutorialsIndex + 1, -1).join('-');
-        return categoryPath || 'uncategorized';
-      }
-    }
-    
-    // Fallback to using the file's category or first folder
-    return file.category || pathSegments[pathSegments.length - 2] || 'uncategorized';
-  }
-
-  private async createLocalizedCategoryNameFromFiles(files: ContentFile[]): Promise<LocalizedString> {
-    const localized: any = {};
-    
-    // Group files by language
-    const filesByLanguage = this.groupFilesByLanguage(files);
-    
-    for (const language of this.options.languages) {
-      const languageFiles = filesByLanguage[language] || [];
-      
-      if (languageFiles.length > 0) {
-        // Extract localized category name using the working logic that prioritizes file.category
-        const localizedName = await this.extractLocalizedCategoryName(languageFiles[0]!, 'Unknown Category');
-        localized[language] = localizedName;
-      } else {
-        // If no files in this language, try to find the canonical English name or use fallback
-        const englishFiles = filesByLanguage['en'] || [];
-        if (englishFiles.length > 0) {
-          const englishName = await this.extractLocalizedCategoryName(englishFiles[0]!, 'Unknown Category');
-          localized[language] = englishName;
-        } else {
-          // Last resort: use the first available file's category name
-          const anyFile = files[0];
-          if (anyFile) {
-            const fallbackName = await this.extractLocalizedCategoryName(anyFile, 'Unknown Category');
-            localized[language] = fallbackName;
-          } else {
-            localized[language] = 'Unknown Category';
-          }
-        }
-      }
-    }
-    
-    return localized as LocalizedString;
-  }
 
 
   private calculateLanguageCoverage(files: ContentFile[]): { [lang: string]: number } {
