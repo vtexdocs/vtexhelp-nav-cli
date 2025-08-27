@@ -189,6 +189,7 @@ export class ContentScanner {
     }
   }
 
+
   private async parseMarkdownFile(filePath: string, language: Language, section: string, contentDir: string): Promise<ContentFile | null> {
     try {
       const content = await fs.readFile(filePath, 'utf8');

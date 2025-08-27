@@ -217,6 +217,9 @@ export class NavigationTransformer {
     // Merge categories by the English slug so categories are localized entities
     const merged = this.mergeCategoryNodeLists(nonEmpty);
 
+    // Sort merged categories based on section-specific ordering rules
+    this.sortCategoryNodes(merged, sectionName);
+
     return merged;
   }
 
@@ -266,7 +269,7 @@ export class NavigationTransformer {
           return null;
         }
         
-        return {
+        const node = {
           name,
           // Categories now require localized slugs; all locales filled from localized names with conflict resolution
           slug: slug,
@@ -274,6 +277,13 @@ export class NavigationTransformer {
           type: 'category',
           children: documents,
         } as NavigationNode;
+        
+        // Add order information if available
+        if (typeof categoryInfo.order === 'number') {
+          (node as any).order = categoryInfo.order;
+        }
+        
+        return node;
       } else if (children && typeof children === 'object') {
         // This is a category with subcategories
         const subcategoryNodes = await this.buildCategoryNodes(
@@ -405,14 +415,88 @@ export class NavigationTransformer {
       }
     }
 
-    // Sort documents by English title
-    nodes.sort((a, b) => {
-      const titleA = ((a.name as any).en || '').toLowerCase();
-      const titleB = ((b.name as any).en || '').toLowerCase();
-      return titleA.localeCompare(titleB);
-    });
+    // Sort documents based on section-specific ordering rules
+    this.sortDocumentNodes(nodes, sectionName);
 
     return nodes;
+  }
+
+  /**
+   * Sort document nodes based on section-specific rules
+   */
+  private sortDocumentNodes(nodes: NavigationNode[], sectionName?: string): void {
+    if (sectionName === 'tracks') {
+      // For tracks, sort by order property from frontmatter if available
+      nodes.sort((a, b) => {
+        // Extract order values from the original files (stored in children metadata)
+        const orderA = (a as any).order;
+        const orderB = (b as any).order;
+        
+        // If both have order values, sort by order
+        if (typeof orderA === 'number' && typeof orderB === 'number') {
+          return orderA - orderB;
+        }
+        
+        // If only one has an order, prioritize the one with order
+        if (typeof orderA === 'number' && typeof orderB !== 'number') {
+          return -1;
+        }
+        if (typeof orderB === 'number' && typeof orderA !== 'number') {
+          return 1;
+        }
+        
+        // If neither has order, sort by English title
+        const titleA = ((a.name as any).en || '').toLowerCase();
+        const titleB = ((b.name as any).en || '').toLowerCase();
+        return titleA.localeCompare(titleB);
+      });
+    } else {
+      // Default sorting by English title for other sections
+      nodes.sort((a, b) => {
+        const titleA = ((a.name as any).en || '').toLowerCase();
+        const titleB = ((b.name as any).en || '').toLowerCase();
+        return titleA.localeCompare(titleB);
+      });
+    }
+  }
+
+  /**
+   * Sort category nodes based on section-specific rules
+   */
+  private sortCategoryNodes(nodes: NavigationNode[], sectionName?: string): void {
+    if (sectionName === 'tracks') {
+      // For tracks, sort categories (tracks) by their order property from order.json
+      nodes.sort((a, b) => {
+        // Extract order values from the category data
+        const orderA = (a as any).order;
+        const orderB = (b as any).order;
+        
+        // If both have order values, sort by order
+        if (typeof orderA === 'number' && typeof orderB === 'number') {
+          return orderA - orderB;
+        }
+        
+        // If only one has an order, prioritize the one with order
+        if (typeof orderA === 'number' && typeof orderB !== 'number') {
+          return -1;
+        }
+        if (typeof orderB === 'number' && typeof orderA !== 'number') {
+          return 1;
+        }
+        
+        // If neither has order, sort by English title
+        const titleA = ((a.name as any).en || '').toLowerCase();
+        const titleB = ((b.name as any).en || '').toLowerCase();
+        return titleA.localeCompare(titleB);
+      });
+    } else {
+      // Default sorting by English title for other sections
+      nodes.sort((a, b) => {
+        const titleA = ((a.name as any).en || '').toLowerCase();
+        const titleB = ((b.name as any).en || '').toLowerCase();
+        return titleA.localeCompare(titleB);
+      });
+    }
   }
 
   private async buildDocumentNode(
@@ -460,10 +544,16 @@ export class NavigationTransformer {
         type: 'markdown',
         children: [],
       };
+      
+      // Add order information for tracks if available
+      if (typeof file.metadata.order === 'number') {
+        (node as any).order = file.metadata.order;
+      }
 
       this.logger.debug(`Built document node: ${file.fileName}`, {
         title: name,
         slug: slug,
+        order: file.metadata.order,
       });
 
       return node;

@@ -10,6 +10,7 @@ export interface FrontMatter {
   createdAt?: string;
   updatedAt?: string;
   publishedAt?: string;
+  order?: number; // Order for track articles
   [key: string]: any; // Allow additional fields
 }
 
@@ -31,6 +32,7 @@ export interface CategoryMap {
     children: CategoryMap | ContentFile[];
     path: string;
     level: number;
+    order?: number; // Order for tracks (from order.json)
   };
 }
 

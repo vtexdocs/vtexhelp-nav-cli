@@ -1,3 +1,4 @@
+import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import type { LocalizedString } from '../../types/navigation.js';
 import type { 
@@ -332,6 +333,60 @@ export class CategoryBuilder {
   }
 
 
+  /**
+   * Read order.json file from a track directory
+   */
+  private async readTrackOrder(trackPath: string): Promise<number | undefined> {
+    try {
+      const orderJsonPath = path.join(trackPath, 'order.json');
+      const orderExists = await fs.stat(orderJsonPath).catch(() => false);
+      
+      if (!orderExists) {
+        return undefined;
+      }
+      
+      const orderContent = await fs.readFile(orderJsonPath, 'utf8');
+      const orderData = JSON.parse(orderContent);
+      
+      if (typeof orderData.order === 'number') {
+        return orderData.order;
+      }
+      
+      this.logger.warn(`Invalid order.json format in: ${orderJsonPath}`, {
+        orderData
+      });
+      return undefined;
+    } catch (error) {
+      this.logger.debug(`Failed to read order.json from: ${trackPath}`, { error });
+      return undefined;
+    }
+  }
+
+  /**
+   * Get the track directory path for reading order.json
+   */
+  private getTrackDirectoryPath(file: ContentFile): string {
+    // For tracks, the file path structure is typically:
+    // .../docs/en/tracks/[track-topic]/[track-name]/article.md
+    // We want to get the track-name directory path
+    const pathSegments = file.relativePath.split(path.sep);
+    
+    if (pathSegments.length >= 2) {
+      // Get the track directory (second level: [track-topic]/[track-name])
+      const trackTopicDir = pathSegments[0];
+      const trackDir = pathSegments[1];
+      
+      // Build the full path to the track directory
+      const basePath = path.dirname(path.dirname(file.path)); // Go up to language dir
+      
+      if (trackTopicDir && trackDir) {
+        return path.join(basePath, file.section, trackTopicDir, trackDir);
+      }
+    }
+    
+    return '';
+  }
+
   private async buildNestedCategoryFromPath(
     categoryMap: CategoryMap, 
     section: string, 
@@ -357,23 +412,37 @@ export class CategoryBuilder {
           pathParts.slice(0, i + 1)
         );
         
+        // For tracks, read order.json for track-level ordering (second level)
+        let order: number | undefined = undefined;
+        if (section === 'tracks' && i === 1 && files.length > 0) {
+          // This is a track (second level in tracks hierarchy)
+          const trackDirPath = this.getTrackDirectoryPath(files[0]!);
+          if (trackDirPath) {
+            order = await this.readTrackOrder(trackDirPath);
+            this.logger.debug(`Track order for ${levelPath}:`, { order, trackDirPath });
+          }
+        }
+        
         currentMap[levelPath] = {
           name: localizedName,
-          children: isLeafLevel ? files : {},
+          children: isLeafLevel ? this.sortTrackArticles(files, section) : {},
           path: levelPath,
           level: i + 1,
+          ...(order !== undefined && { order })
         };
         
         this.logger.debug(`Created hierarchical category: ${levelPath}`, {
           pathPart,
           level: i + 1,
           isLeaf: isLeafLevel,
-          fileCount: isLeafLevel ? files.length : 0
+          fileCount: isLeafLevel ? files.length : 0,
+          order
         });
       } else if (isLeafLevel && Array.isArray(currentMap[levelPath]!.children)) {
         // If this is a leaf level and we already have files, merge them
         const existingFiles = currentMap[levelPath]!.children as ContentFile[];
-        currentMap[levelPath]!.children = [...existingFiles, ...files];
+        const allFiles = [...existingFiles, ...files];
+        currentMap[levelPath]!.children = this.sortTrackArticles(allFiles, section);
       }
       
       // Move to the next level for non-leaf nodes
@@ -384,6 +453,37 @@ export class CategoryBuilder {
         }
       }
     }
+  }
+
+  /**
+   * Sort track articles by their order property from frontmatter
+   */
+  private sortTrackArticles(files: ContentFile[], section: string): ContentFile[] {
+    if (section !== 'tracks') {
+      return files;
+    }
+    
+    // Sort files by the order property in frontmatter, then by title as fallback
+    return files.sort((a, b) => {
+      const orderA = a.metadata.order;
+      const orderB = b.metadata.order;
+      
+      // If both have order values, sort by order
+      if (typeof orderA === 'number' && typeof orderB === 'number') {
+        return orderA - orderB;
+      }
+      
+      // If only one has an order, prioritize the one with order
+      if (typeof orderA === 'number' && typeof orderB !== 'number') {
+        return -1;
+      }
+      if (typeof orderB === 'number' && typeof orderA !== 'number') {
+        return 1;
+      }
+      
+      // If neither has order, sort by title
+      return a.metadata.title.localeCompare(b.metadata.title);
+    });
   }
 
   private async createLocalizedCategoryNameForPath(
