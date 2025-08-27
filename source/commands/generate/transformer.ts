@@ -418,6 +418,11 @@ export class NavigationTransformer {
     // Sort documents based on section-specific ordering rules
     this.sortDocumentNodes(nodes, sectionName);
 
+    // Add order numbers to track article names for better UX
+    if (sectionName === 'tracks') {
+      this.addOrderNumbersToArticleNames(nodes);
+    }
+
     return nodes;
   }
 
@@ -716,5 +721,35 @@ export class NavigationTransformer {
     }
     
     return count;
+  }
+
+  /**
+   * Add order numbers as prefixes to article names for better UX in tracks
+   */
+  private addOrderNumbersToArticleNames(nodes: NavigationNode[]): void {
+    // Only process markdown (article) nodes
+    const articleNodes = nodes.filter(node => (node as any).type === 'markdown');
+    
+    // Assign position-based order numbers (1, 2, 3, etc.)
+    // Since nodes are already sorted, we can use their position
+    articleNodes.forEach((node, index) => {
+      const orderNumber = index + 1;
+      const nodeAny = node as any;
+      
+      // Add order number prefix to all language variants
+      if (nodeAny.name) {
+        const name = nodeAny.name as LocalizedString;
+        for (const lang of ['en', 'es', 'pt'] as const) {
+          if (name[lang] && name[lang].trim()) {
+            // Only add prefix if it doesn't already exist
+            if (!name[lang].match(/^\d+\./)) {
+              name[lang] = `${orderNumber}. ${name[lang]}`;
+            }
+          }
+        }
+      }
+    });
+    
+    this.logger.debug(`Added order number prefixes to ${articleNodes.length} track articles`);
   }
 }
