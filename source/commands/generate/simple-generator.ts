@@ -321,11 +321,14 @@ export class SimpleNavigationGenerator {
     this.logPhase('Validating and Writing Output');
     
     try {
-      const validator = new NavigationValidator(this.logger, this.options);
-      const validationResult = await validator.validateNavigation(navigationData);
+      // Clean up the navigation data before validation to remove internal fields like 'order'
+      const cleanedData = this.cleanupNavigationData(navigationData);
       
-      // Write navigation file
-      await this.writeNavigationFile(navigationData);
+      const validator = new NavigationValidator(this.logger, this.options);
+      const validationResult = await validator.validateNavigation(cleanedData);
+      
+      // Write navigation file (using the already cleaned data)
+      await this.writeNavigationFile(cleanedData);
       
       // Generate report if requested
       if (this.options.report) {
@@ -376,11 +379,9 @@ export class SimpleNavigationGenerator {
   }
   
   private async writeNavigationFile(navigationData: NavigationData): Promise<void> {
-    // Clean up the navigation data to ensure schema compliance
-    const cleanedData = this.cleanupNavigationData(navigationData);
-    
+    // navigationData is already cleaned, so we can write it directly
     const outputPath = path.resolve(this.options.output);
-    const jsonContent = JSON.stringify(cleanedData, null, 2);
+    const jsonContent = JSON.stringify(navigationData, null, 2);
     
     await fs.writeFile(outputPath, jsonContent, 'utf8');
     
