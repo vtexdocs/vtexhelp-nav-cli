@@ -251,7 +251,13 @@ export class NavigationValidator {
           errors.push(`Empty slug found for ${duplicate.items.length} documents in section '${sectionName}' (${language}): ${duplicate.items.map(item => item.name).join(', ')}`);
         } else {
           // Non-empty duplicate slugs are errors as they break navigation
-          const itemDescriptions = duplicate.items.map(item => `${item.type}:'${item.name}' at '${item.path}'`);
+          const itemDescriptions = duplicate.items.map(item => {
+            let description = `${item.type}:'${item.name}' at '${item.path}'`;
+            if (item.distinguisher) {
+              description += ` [${item.distinguisher}]`;
+            }
+            return description;
+          });
           errors.push(`Duplicate slug '${duplicate.slug}' found ${duplicate.items.length} times in section '${sectionName}' (${language}): ${itemDescriptions.join(', ')}`);
         }
       }
@@ -262,9 +268,9 @@ export class NavigationValidator {
   
   private findSlugDuplicatesInSection(section: any, language: string): Array<{
     slug: string;
-    items: Array<{ type: string; name: string; path: string }>
+    items: Array<{ type: string; name: string; path: string; englishName?: string; distinguisher?: string }>
   }> {
-    const slugMap = new Map<string, Array<{ type: string; name: string; path: string }>>();
+    const slugMap = new Map<string, Array<{ type: string; name: string; path: string; englishName?: string; distinguisher?: string }>>();
     
     // Collect all slugs (categories and documents) within this section for the specified language
     this.collectSlugsFromCategories(section.categories, language, slugMap, []);
@@ -284,20 +290,33 @@ export class NavigationValidator {
   private collectSlugsFromCategories(
     categories: any[], 
     language: string, 
-    slugMap: Map<string, Array<{ type: string; name: string; path: string }>>,
+    slugMap: Map<string, Array<{ type: string; name: string; path: string; englishName?: string; distinguisher?: string }>>,
     pathSegments: string[]
   ) {
     for (const category of categories) {
       // Collect category slug
       const categorySlug = this.getSlugForLanguage(category.slug, language);
       const categoryName = this.getNameForLanguage(category.name, language);
+      const englishName = this.getNameForLanguage(category.name, 'en');
+      const englishSlug = this.getSlugForLanguage(category.slug, 'en');
       const currentPath = [...pathSegments, categoryName || 'Unknown Category'];
       
       if (categorySlug !== null) {
+        // Create a distinguisher when English name differs from the current language name
+        let distinguisher: string | undefined;
+        if (language !== 'en' && englishName && englishName !== categoryName) {
+          distinguisher = `en:'${englishName}'`;
+        }
+        if (englishSlug && englishSlug !== categorySlug) {
+          distinguisher = distinguisher ? `${distinguisher}, en-slug:'${englishSlug}'` : `en-slug:'${englishSlug}'`;
+        }
+        
         const categoryInfo = { 
           type: 'category', 
           name: categoryName || 'Unknown Category',
-          path: currentPath.join(' > ')
+          path: currentPath.join(' > '),
+          englishName: englishName || undefined,
+          distinguisher
         };
         if (!slugMap.has(categorySlug)) {
           slugMap.set(categorySlug, []);
@@ -314,12 +333,25 @@ export class NavigationValidator {
             // Handle documents
             const documentSlug = this.getSlugForLanguage(child.slug, language);
             const documentName = this.getNameForLanguage(child.name, language);
+            const englishDocName = this.getNameForLanguage(child.name, 'en');
+            const englishDocSlug = this.getSlugForLanguage(child.slug, 'en');
             
             if (documentSlug !== null) {
+              // Create a distinguisher when English name differs
+              let distinguisher: string | undefined;
+              if (language !== 'en' && englishDocName && englishDocName !== documentName) {
+                distinguisher = `en:'${englishDocName}'`;
+              }
+              if (englishDocSlug && englishDocSlug !== documentSlug) {
+                distinguisher = distinguisher ? `${distinguisher}, en-slug:'${englishDocSlug}'` : `en-slug:'${englishDocSlug}'`;
+              }
+              
               const documentInfo = { 
                 type: 'document', 
                 name: documentName || 'Unknown Document',
-                path: [...currentPath, documentName || 'Unknown Document'].join(' > ')
+                path: [...currentPath, documentName || 'Unknown Document'].join(' > '),
+                englishName: englishDocName || undefined,
+                distinguisher
               };
               if (!slugMap.has(documentSlug)) {
                 slugMap.set(documentSlug, []);
