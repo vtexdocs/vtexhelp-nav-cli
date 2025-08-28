@@ -547,15 +547,39 @@ export class CategoryBuilder {
     if (contextDepth >= 0 && contextDepth < categorySegments.length) {
       const localizedSegment = categorySegments[contextDepth];
       if (localizedSegment) {
+        // Use the original localized segment directly, preserving accents and special characters
+        // Only apply normalizeCategoryName for proper casing and acronym handling
         return await normalizeCategoryName(localizedSegment);
       }
     }
     
-    // Fallback to normalizing the path segment
+    // Fallback to normalizing the path segment (this should be the original, non-canonical segment)
+    // We need to find the original segment from the file path, not the normalized pathSegment
+    const originalSegment = this.getOriginalSegmentFromFile(file, pathContext.length - 1);
+    if (originalSegment) {
+      return await normalizeCategoryName(originalSegment);
+    }
+    
+    // Last resort: normalize the pathSegment (which might be canonical)
     return await normalizeCategoryName(pathSegment);
   }
 
 
+
+  /**
+   * Get the original (non-canonical) segment from file at the specified depth
+   * This preserves accents and special characters
+   */
+  private getOriginalSegmentFromFile(file: ContentFile, depth: number): string | null {
+    const pathSegments = file.relativePath.split(path.sep);
+    const categorySegments = pathSegments.slice(0, -1); // Remove filename
+    
+    if (depth >= 0 && depth < categorySegments.length) {
+      return categorySegments[depth] || null;
+    }
+    
+    return null;
+  }
 
   private groupFilesByLanguage(files: ContentFile[]): { [language: string]: ContentFile[] } {
     const grouped: { [language: string]: ContentFile[] } = {};
