@@ -468,10 +468,27 @@ export class SimpleNavigationGenerator {
       }
     }
     
-    // Validation errors
-    if (validationResult.errors.length > 0) {
-      report += `\n## Validation Errors\n\n`;
-      validationResult.errors.forEach(error => {
+    // Duplicate slug errors (separate section for better visibility)
+    const duplicateSlugErrors = validationResult.errors.filter(error => 
+      error.includes('Duplicate slug') && !error.includes('among siblings')
+    );
+    const otherValidationErrors = validationResult.errors.filter(error => 
+      !(error.includes('Duplicate slug') && !error.includes('among siblings'))
+    );
+    
+    if (duplicateSlugErrors.length > 0) {
+      report += `\n## Duplicate Slug Conflicts\n\n`;
+      report += `Found ${duplicateSlugErrors.length} duplicate slug conflicts that need to be resolved:\n\n`;
+      duplicateSlugErrors.forEach(error => {
+        report += `- 🔗 ${error}\n`;
+      });
+      report += `\n> **Fix:** Rename categories or documents to ensure unique slugs within each navigation section.\n`;
+    }
+    
+    // Other validation errors
+    if (otherValidationErrors.length > 0) {
+      report += `\n## Other Validation Errors\n\n`;
+      otherValidationErrors.forEach(error => {
         report += `- ❌ ${error}\n`;
       });
     }
@@ -536,6 +553,10 @@ export class SimpleNavigationGenerator {
       }
     }
     
+    const duplicateSlugErrors = validationResult.errors.filter(error => 
+      error.includes('Duplicate slug') && !error.includes('among siblings')
+    );
+    
     console.log(`\n${validationResult.valid ? '✅' : '❌'} Validation: ${validationResult.valid ? 'PASSED' : 'FAILED'}`);
     
     const errors = scanResult.stats.errors.length;
@@ -553,7 +574,11 @@ export class SimpleNavigationGenerator {
       console.log(`🚫 Parse errors: ${parseErrors} (use --report for details)`);
     }
     
-    if (errors === 0 && warnings === 0 && parseErrors === 0) {
+    if (duplicateSlugErrors.length > 0) {
+      console.log(`🔗 Duplicate slug conflicts: ${duplicateSlugErrors.length}`);
+    }
+    
+    if (errors === 0 && warnings === 0 && parseErrors === 0 && duplicateSlugErrors.length === 0) {
       console.log('🎯 No issues detected!');
     }
     

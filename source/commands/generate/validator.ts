@@ -48,6 +48,7 @@ export class NavigationValidator {
       // Basic content consistency checks
       const contentValidation = await this.validateContent(navigationData);
       warnings.push(...contentValidation.warnings);
+      errors.push(...contentValidation.errors);
 
       const stats = this.generateValidationStats(navigationData);
       
@@ -209,61 +210,154 @@ export class NavigationValidator {
     return { errors, warnings };
   }
 
-  private async validateContent(navigationData: NavigationData): Promise<{ warnings: string[] }> {
+  private async validateContent(navigationData: NavigationData): Promise<{ warnings: string[]; errors: string[] }> {
     const warnings: string[] = [];
+    const errors: string[] = [];
 
-    // Check for duplicate slugs within each section (slugs should be unique per section)
+    // Check for duplicate slugs within each section (slugs should be unique per section/language)
     if (Array.isArray(navigationData.navbar)) {
       for (const section of navigationData.navbar) {
-        const sectionSlugWarnings = this.validateSectionSlugs(section);
-        warnings.push(...sectionSlugWarnings);
+        const slugValidation = this.validateSectionSlugs(section);
+        warnings.push(...slugValidation.warnings);
+        errors.push(...slugValidation.errors);
       }
     }
 
     this.logger.info('Content validation completed', {
       warnings: warnings.length,
+      errors: errors.length,
     });
 
-    return { warnings };
+    return { warnings, errors };
   }
 
-  private validateSectionSlugs(section: any): string[] {
+  private validateSectionSlugs(section: any): { warnings: string[]; errors: string[] } {
     const warnings: string[] = [];
+    const errors: string[] = [];
     
     if (!section.categories || !Array.isArray(section.categories)) {
-      return warnings;
+      return { warnings, errors };
     }
     
     const sectionName = section.documentation || 'unknown';
     
-    // For unified structure, we check slug uniqueness within the entire section
-    // since the navigation uses unified multilingual documents
-    const slugsInSection = new Set<string>();
-    
-    this.checkSlugsInSection(section.categories, slugsInSection, warnings, sectionName);
-    
-    return warnings;
-  }
-  
-  private checkSlugsInSection(nodes: any[], slugs: Set<string>, warnings: string[], sectionName: string) {
-    for (const node of nodes) {
-      if (node.slug && node.type === 'markdown') {
-        // Only check slug uniqueness for documents, not categories
-        const slugValue = typeof node.slug === 'string' ? node.slug : node.slug.en || Object.values(node.slug)[0];
-        
-        if (slugValue) {
-          if (slugs.has(slugValue)) {
-            warnings.push(`Duplicate slug '${slugValue}' found in section '${sectionName}'`);
-          } else {
-            slugs.add(slugValue);
-          }
+    // Check slug uniqueness for each language within the section
+    for (const language of this.options.languages) {
+      const slugDuplicates = this.findSlugDuplicatesInSection(section, language);
+      
+      for (const duplicate of slugDuplicates) {
+        if (duplicate.slug === '') {
+          // Empty slugs are errors (likely from parsing failures)
+          errors.push(`Empty slug found for ${duplicate.items.length} documents in section '${sectionName}' (${language}): ${duplicate.items.map(item => item.name).join(', ')}`);
+        } else {
+          // Non-empty duplicate slugs are errors as they break navigation
+          const itemDescriptions = duplicate.items.map(item => `${item.type}:'${item.name}' at '${item.path}'`);
+          errors.push(`Duplicate slug '${duplicate.slug}' found ${duplicate.items.length} times in section '${sectionName}' (${language}): ${itemDescriptions.join(', ')}`);
         }
       }
-
-      if (node.children && Array.isArray(node.children)) {
-        this.checkSlugsInSection(node.children, slugs, warnings, sectionName);
+    }
+    
+    return { warnings, errors };
+  }
+  
+  private findSlugDuplicatesInSection(section: any, language: string): Array<{
+    slug: string;
+    items: Array<{ type: string; name: string; path: string }>
+  }> {
+    const slugMap = new Map<string, Array<{ type: string; name: string; path: string }>>();
+    
+    // Collect all slugs (categories and documents) within this section for the specified language
+    this.collectSlugsFromCategories(section.categories, language, slugMap, []);
+    
+    // Filter to only duplicates (more than one occurrence)
+    const duplicates: Array<{ slug: string; items: Array<{ type: string; name: string; path: string }> }> = [];
+    
+    for (const [slug, items] of slugMap.entries()) {
+      if (items.length > 1) {
+        duplicates.push({ slug, items });
       }
     }
+    
+    return duplicates;
+  }
+  
+  private collectSlugsFromCategories(
+    categories: any[], 
+    language: string, 
+    slugMap: Map<string, Array<{ type: string; name: string; path: string }>>,
+    pathSegments: string[]
+  ) {
+    for (const category of categories) {
+      // Collect category slug
+      const categorySlug = this.getSlugForLanguage(category.slug, language);
+      const categoryName = this.getNameForLanguage(category.name, language);
+      const currentPath = [...pathSegments, categoryName || 'Unknown Category'];
+      
+      if (categorySlug !== null) {
+        const categoryInfo = { 
+          type: 'category', 
+          name: categoryName || 'Unknown Category',
+          path: currentPath.join(' > ')
+        };
+        if (!slugMap.has(categorySlug)) {
+          slugMap.set(categorySlug, []);
+        }
+        slugMap.get(categorySlug)!.push(categoryInfo);
+      }
+      
+      // Collect document slugs and recurse into nested categories from children
+      if (category.children && Array.isArray(category.children)) {
+        const nestedCategories: any[] = [];
+        
+        for (const child of category.children) {
+          if (child.type === 'document') {
+            // Handle documents
+            const documentSlug = this.getSlugForLanguage(child.slug, language);
+            const documentName = this.getNameForLanguage(child.name, language);
+            
+            if (documentSlug !== null) {
+              const documentInfo = { 
+                type: 'document', 
+                name: documentName || 'Unknown Document',
+                path: [...currentPath, documentName || 'Unknown Document'].join(' > ')
+              };
+              if (!slugMap.has(documentSlug)) {
+                slugMap.set(documentSlug, []);
+              }
+              slugMap.get(documentSlug)!.push(documentInfo);
+            }
+          } else if (child.type === 'category') {
+            // Collect nested categories for recursion
+            nestedCategories.push(child);
+          }
+        }
+        
+        // Recurse into nested categories only
+        if (nestedCategories.length > 0) {
+          this.collectSlugsFromCategories(nestedCategories, language, slugMap, currentPath);
+        }
+      }
+    }
+  }
+  
+  private getSlugForLanguage(slugObj: any, language: string): string | null {
+    if (typeof slugObj === 'string') {
+      return slugObj;
+    }
+    if (slugObj && typeof slugObj === 'object') {
+      return slugObj[language] || slugObj.en || Object.values(slugObj)[0] || null;
+    }
+    return null;
+  }
+  
+  private getNameForLanguage(nameObj: any, language: string): string | null {
+    if (typeof nameObj === 'string') {
+      return nameObj;
+    }
+    if (nameObj && typeof nameObj === 'object') {
+      return nameObj[language] || nameObj.en || Object.values(nameObj)[0] || null;
+    }
+    return null;
   }
 
 

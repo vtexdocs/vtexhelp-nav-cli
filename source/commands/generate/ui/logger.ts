@@ -195,8 +195,15 @@ export class DualLogger {
     });
     
     // Log errors and warnings
-    summary.errors.forEach(error => this.log('error', error, { phase }));
-    summary.warnings.forEach(warning => this.log('warn', warning, { phase }));
+    summary.errors.forEach(error => {
+      // For validation phase, don't include phase context to avoid cluttering output
+      const context = phase === 'Validation' ? undefined : { phase };
+      this.log('error', error, context);
+    });
+    summary.warnings.forEach(warning => {
+      const context = phase === 'Validation' ? undefined : { phase };
+      this.log('warn', warning, context);
+    });
   }
 
   public setCurrentFile(filePath: string) {
