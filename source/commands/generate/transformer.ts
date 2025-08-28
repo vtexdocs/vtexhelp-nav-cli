@@ -570,17 +570,10 @@ export class NavigationTransformer {
   }
 
   private getDocumentSlug(file: ContentFile): string {
-    // Always prefer filename-based slug for generator output to ensure
+    // Always use filename-based slug for generator output to ensure
     // runtime consistency with systems that resolve by filenames.
-    const filenameSlug = this.generateSlugFromFilename(file.fileName);
-    const legacySlug = file.metadata['legacySlug'];
-
-    if (legacySlug && legacySlug !== filenameSlug) {
-      const warnMsg = `SLUG_MISMATCH: frontmatter legacySlug ('${legacySlug}') != filename slug ('${filenameSlug}') for ${file.path}`;
-      this.logger?.warn?.(warnMsg);
-    }
-
-    return filenameSlug;
+    // legacySlug is not used by the navigation system so no comparison needed.
+    return this.generateSlugFromFilename(file.fileName);
   }
 
 
