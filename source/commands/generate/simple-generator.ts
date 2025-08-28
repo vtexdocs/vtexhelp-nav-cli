@@ -339,9 +339,48 @@ export class SimpleNavigationGenerator {
     }
   }
 
+  /**
+   * Cleans up the navigation data to ensure schema compliance
+   * Specifically, removes the 'order' field which is used internally
+   * but not allowed in the schema
+   */
+  private cleanupNavigationData(navigationData: NavigationData): NavigationData {
+    const cleanedData = JSON.parse(JSON.stringify(navigationData));
+
+    // Function to recursively remove order property from all nodes
+    const removeOrderFromNode = (node: any) => {
+      if (node && typeof node === 'object') {
+        // Delete order property if present
+        if ('order' in node) {
+          delete node.order;
+        }
+        
+        // Process children recursively
+        if (Array.isArray(node.children)) {
+          node.children.forEach(removeOrderFromNode);
+        }
+        
+        // Process categories in navbar items
+        if (Array.isArray(node.categories)) {
+          node.categories.forEach(removeOrderFromNode);
+        }
+      }
+    };
+    
+    // Start the cleanup process from the navbar array
+    if (cleanedData.navbar && Array.isArray(cleanedData.navbar)) {
+      cleanedData.navbar.forEach(removeOrderFromNode);
+    }
+    
+    return cleanedData;
+  }
+  
   private async writeNavigationFile(navigationData: NavigationData): Promise<void> {
+    // Clean up the navigation data to ensure schema compliance
+    const cleanedData = this.cleanupNavigationData(navigationData);
+    
     const outputPath = path.resolve(this.options.output);
-    const jsonContent = JSON.stringify(navigationData, null, 2);
+    const jsonContent = JSON.stringify(cleanedData, null, 2);
     
     await fs.writeFile(outputPath, jsonContent, 'utf8');
     
