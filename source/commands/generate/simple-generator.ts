@@ -128,7 +128,7 @@ export class SimpleNavigationGenerator {
       this.log('warn', 'Special sections handling not yet implemented');
 
       // Phase 6: Validation and output
-      const validationResult = await this.validateAndOutput(navigationData);
+      const validationResult = await this.validateAndOutput(navigationData, scanResult);
       if (!validationResult) {
         this.log('error', 'Validation failed');
         return false;
@@ -138,8 +138,10 @@ export class SimpleNavigationGenerator {
         return false;
       }
 
-      // Collect all warnings for display
-      this.collectWarnings(scanResult, validationResult);
+      // Collect all warnings for display (if not already collected for report)
+      if (!this.options.report) {
+        this.collectWarnings(scanResult, validationResult);
+      }
       
       // Print final summary
       this.printFinalSummary(scanResult, validationResult);
@@ -248,18 +250,14 @@ export class SimpleNavigationGenerator {
       this.log('error', 'Failed to ensure known-issues repository', { error: error instanceof Error ? error.message : error });
       return false;
     }
-  }  private async scanContent(): Promise<ScanResult | null> {
+  }
+
+  private async scanContent(): Promise<ScanResult | null> {
     this.logPhase('Scanning Content Directory');
     
     try {
-      // Create a proper DualLogger instance for the scanner
-      const logger = new DualLogger({
-        logFile: this.options.logFile,
-        verbose: this.options.verbose,
-        interactive: false // Simple mode is non-interactive
-      });
-
-      const scanner = new ContentScanner(logger, this.options);
+      // Use the same logger instance as the generator so all logs are captured together
+      const scanner = new ContentScanner(this.logger, this.options);
       const result = await scanner.scan();
       
       if (result.stats.errors.length > 0) {
@@ -317,7 +315,7 @@ export class SimpleNavigationGenerator {
     }
   }
 
-  private async validateAndOutput(navigationData: NavigationData): Promise<ValidationResult | null> {
+  private async validateAndOutput(navigationData: NavigationData, scanResult: ScanResult): Promise<ValidationResult | null> {
     this.logPhase('Validating and Writing Output');
     
     try {
@@ -330,8 +328,10 @@ export class SimpleNavigationGenerator {
       // Write navigation file (using the already cleaned data)
       await this.writeNavigationFile(cleanedData);
       
-      // Generate report if requested
+      // Generate report if requested (need to collect warnings first)
       if (this.options.report) {
+        // Collect all warnings for report generation
+        this.collectWarnings(scanResult, validationResult);
         await this.generateReport(validationResult, navigationData);
       }
       
@@ -438,17 +438,47 @@ export class SimpleNavigationGenerator {
       }
     }
     
-    // Errors
+    // Files skipped due to parsing errors
+    const parseErrors = this.logger
+      .getLogs('error')
+      .filter(log => log.message && typeof log.message === 'string' && log.message.includes('Failed to parse markdown file:'))
+      .map(log => log.message);
+    
+    if (parseErrors.length > 0) {
+      report += `\n## Files Skipped Due to Parse Errors\n\n`;
+      report += `${parseErrors.length} files were skipped due to YAML frontmatter or markdown parsing errors:\n\n`;
+      parseErrors.forEach(error => {
+        report += `- ❌ ${error}\n`;
+      });
+      report += `\n> These files were not included in the navigation. Fix the YAML frontmatter issues to include them.\n`;
+    }
+    
+    // All warnings collected
+    if (this.allWarnings && this.allWarnings.length > 0) {
+      report += `\n## All Warnings\n\n`;
+      report += `Total warnings: ${this.allWarnings.length}\n\n`;
+      
+      const groupedWarnings = this.groupWarningsByType(this.allWarnings);
+      for (const [type, warnings] of Object.entries(groupedWarnings)) {
+        report += `### ${type} Warnings (${warnings.length})\n\n`;
+        warnings.forEach(warning => {
+          report += `- ⚠️ ${warning.replace(`[${type}] `, '')}\n`;
+        });
+        report += `\n`;
+      }
+    }
+    
+    // Validation errors
     if (validationResult.errors.length > 0) {
-      report += `\n## Errors\n\n`;
+      report += `\n## Validation Errors\n\n`;
       validationResult.errors.forEach(error => {
         report += `- ❌ ${error}\n`;
       });
     }
     
-    // Warnings
+    // Validation warnings
     if (validationResult.warnings.length > 0) {
-      report += `\n## Warnings\n\n`;
+      report += `\n## Validation Warnings\n\n`;
       validationResult.warnings.forEach(warning => {
         report += `- ⚠️ ${warning}\n`;
       });
@@ -481,8 +511,17 @@ export class SimpleNavigationGenerator {
     console.log(`\n📄 Output: ${this.options.output}`);
     console.log(`⏱️  Duration: ${duration}s`);
     
+    // Get parse error count
+    const parseErrors = this.logger
+      .getLogs('error')
+      .filter(log => log.message && typeof log.message === 'string' && log.message.includes('Failed to parse markdown file:'))
+      .length;
+    
     console.log(`\n📊 Statistics:`);
     console.log(`  Files processed: ${scanResult.files.length}`);
+    if (parseErrors > 0) {
+      console.log(`  Files skipped (parse errors): ${parseErrors}`);
+    }
     if (validationResult.stats) {
       console.log(`  Categories: ${validationResult.stats.totalCategories || 0}`);
       console.log(`  Documents: ${validationResult.stats.totalDocuments || 0}`);
@@ -510,7 +549,11 @@ export class SimpleNavigationGenerator {
       console.log(`⚠️  Warnings: ${warnings}`);
     }
     
-    if (errors === 0 && warnings === 0) {
+    if (parseErrors > 0) {
+      console.log(`🚫 Parse errors: ${parseErrors} (use --report for details)`);
+    }
+    
+    if (errors === 0 && warnings === 0 && parseErrors === 0) {
       console.log('🎯 No issues detected!');
     }
     
