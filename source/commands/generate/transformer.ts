@@ -645,6 +645,11 @@ export class NavigationTransformer {
           ...((node as any).children || [])
         ] as NavigationNode[];
 
+        // Preserve order field if the incoming node has one and existing doesn't
+        if (typeof (node as any).order === 'number' && typeof existing.order !== 'number') {
+          existing.order = (node as any).order;
+        }
+
         // Recursively merge category children by slug; docs dedup by slug
         const categoryChildren = mergedChildren.filter(ch => (ch as any).type === 'category');
         const docChildren = mergedChildren.filter(ch => (ch as any).type === 'markdown');

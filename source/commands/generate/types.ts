@@ -42,7 +42,8 @@ export interface CategoryMap {
     path: string;
     level: number;
     order?: number; // Order from metadata.json or legacy order.json
-    metadata?: CategoryMetadata; // Full metadata from metadata.json
+    metadata?: CategoryMetadata; // Full metadata from metadata.json (deprecated, use localizedMetadata)
+    localizedMetadata?: { [lang: string]: CategoryMetadata }; // Localized metadata from all languages
   };
 }
 

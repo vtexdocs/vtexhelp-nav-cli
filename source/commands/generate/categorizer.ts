@@ -335,10 +335,10 @@ export class CategoryBuilder {
 
 
   /**
-   * Read metadata.json file from a category directory
+   * Read metadata.json file from a category directory for a specific language
    * Falls back to legacy order.json for backward compatibility
    */
-  private async readCategoryMetadata(categoryPath: string): Promise<{ order?: number; metadata?: CategoryMetadata }> {
+  private async readCategoryMetadata(categoryPath: string, language?: string): Promise<{ order?: number; metadata?: CategoryMetadata }> {
     try {
       // Try multiple possible directory names for the same category
       const possiblePaths = [
@@ -354,7 +354,11 @@ export class CategoryBuilder {
         const metadataExists = await fs.stat(metadataJsonPath).catch(() => false);
         
         if (metadataExists) {
-          console.log(`[METADATA] Found metadata.json at: ${metadataJsonPath}`);
+          if (language) {
+            this.logger.debug(`[METADATA] Found metadata.json for ${language} at: ${metadataJsonPath}`);
+          } else {
+            console.log(`[METADATA] Found metadata.json at: ${metadataJsonPath}`);
+          }
           const metadataContent = await fs.readFile(metadataJsonPath, 'utf8');
           const metadataData = JSON.parse(metadataContent) as CategoryMetadata;
           
@@ -397,6 +401,61 @@ export class CategoryBuilder {
     }
   }
 
+  /**
+   * Read localized metadata from all language versions of a category
+   * Returns unified metadata with canonical ID and localized names/slugs
+   */
+  private async readLocalizedCategoryMetadata(
+    categorySegments: string[], 
+    files: ContentFile[]
+  ): Promise<{ order?: number; canonicalId?: string; localizedMetadata: { [lang: string]: CategoryMetadata } }> {
+    const localizedMetadata: { [lang: string]: CategoryMetadata } = {};
+    let order: number | undefined = undefined;
+    let canonicalId: string | undefined = undefined;
+
+    // Group files by language to get the base paths for each language
+    const filesByLanguage = this.groupFilesByLanguage(files);
+
+    for (const language of this.options.languages) {
+      const languageFiles = filesByLanguage[language];
+      if (!languageFiles || languageFiles.length === 0) continue;
+
+      // Get the base path for this language by extracting from the sample file
+      const sampleFile = languageFiles[0]!;
+      const sampleFileFull = sampleFile.path;
+      const relativePathFull = sampleFile.relativePath;
+      const sectionBasePath = sampleFileFull.substring(0, sampleFileFull.length - relativePathFull.length);
+      
+      // Build the category directory path for this language using original path segments
+      const originalPathSegments = path.dirname(relativePathFull).split(path.sep).filter(part => part !== '.');
+      const relevantSegments = originalPathSegments.slice(0, categorySegments.length);
+      const categoryDirPath = path.join(sectionBasePath, ...relevantSegments);
+
+      // Read metadata for this language
+      const result = await this.readCategoryMetadata(categoryDirPath, language);
+      
+      if (result.metadata) {
+        localizedMetadata[language] = result.metadata;
+        
+        // Use English metadata as the canonical source for order and ID
+        if (language === 'en') {
+          order = result.order;
+          canonicalId = result.metadata.id;
+        } else if (order === undefined && result.order !== undefined) {
+          // Fallback to non-English order if English is not available
+          order = result.order;
+        }
+        
+        // If we don't have a canonical ID yet, use this one
+        if (!canonicalId && result.metadata.id) {
+          canonicalId = result.metadata.id;
+        }
+      }
+    }
+
+    return { order, canonicalId, localizedMetadata };
+  }
+
   private async buildNestedCategoryFromPath(
     categoryMap: CategoryMap, 
     section: string, 
@@ -422,9 +481,10 @@ export class CategoryBuilder {
           pathParts.slice(0, i + 1)
         );
         
-        // Read metadata.json for category-level metadata (order, name, etc.)
+        // Read localized metadata.json for category-level metadata across all languages
         let order: number | undefined = undefined;
-        let categoryMetadata: CategoryMetadata | undefined = undefined;
+        let canonicalId: string | undefined = undefined;
+        let localizedMetadata: { [lang: string]: CategoryMetadata } = {};
         
         if (files.length > 0) {
           // Get the first file to determine base path structure
@@ -447,17 +507,22 @@ export class CategoryBuilder {
           const categorySegments = originalPathSegments.slice(0, targetLevel);
           
           if (sectionBasePath) {
-            const categoryDirPath = path.join(sectionBasePath, ...categorySegments);
+            // Use the new multilingual metadata reader
+            const metadataResult = await this.readLocalizedCategoryMetadata(
+              categorySegments, 
+              files
+            );
             
-            const metadataResult = await this.readCategoryMetadata(categoryDirPath);
             order = metadataResult.order;
-            categoryMetadata = metadataResult.metadata;
+            canonicalId = metadataResult.canonicalId;
+            localizedMetadata = metadataResult.localizedMetadata;
             
-            if (order !== undefined || categoryMetadata) {
-              this.logger.debug(`Category metadata found for ${levelPath}:`, { 
+            if (order !== undefined || Object.keys(localizedMetadata).length > 0) {
+              this.logger.debug(`Localized category metadata found for ${levelPath}:`, { 
                 order, 
-                metadata: categoryMetadata, 
-                categoryDirPath 
+                canonicalId,
+                languages: Object.keys(localizedMetadata),
+                sampleMetadata: localizedMetadata[Object.keys(localizedMetadata)[0] || '']
               });
             }
           }
@@ -469,7 +534,7 @@ export class CategoryBuilder {
           path: levelPath,
           level: i + 1,
           ...(order !== undefined && { order }),
-          ...(categoryMetadata && { metadata: categoryMetadata })
+          ...(Object.keys(localizedMetadata).length > 0 && { localizedMetadata })
         };
         
         this.logger.debug(`Created hierarchical category: ${levelPath}`, {
@@ -527,6 +592,9 @@ export class CategoryBuilder {
     });
   }
 
+  /**
+   * Create localized category name using metadata.json when available, falling back to folder names
+   */
   private async createLocalizedCategoryNameForPath(
     pathSegment: string, 
     files: ContentFile[], 
@@ -534,10 +602,62 @@ export class CategoryBuilder {
   ): Promise<LocalizedString> {
     const localized: any = {};
     
-    // Group files by language to extract localized names
+    // First, try to get localized names from metadata.json files
+    if (files.length > 0) {
+      const localizedMetadataResult = await this.readLocalizedCategoryMetadata(
+        pathContext, // category segments up to current level
+        files
+      );
+      
+      // If we have localized metadata, use those names
+      if (Object.keys(localizedMetadataResult.localizedMetadata).length > 0) {
+        this.logger.debug(`Using metadata.json names for category: ${pathSegment}`, {
+          availableLanguages: Object.keys(localizedMetadataResult.localizedMetadata),
+          canonicalId: localizedMetadataResult.canonicalId
+        });
+        
+        // Use metadata names for available languages
+        for (const language of this.options.languages) {
+          const metadata = localizedMetadataResult.localizedMetadata[language];
+          if (metadata && metadata.name) {
+            localized[language] = metadata.name;
+          }
+        }
+        
+        // Fill in missing languages with fallbacks
+        for (const language of this.options.languages) {
+          if (!localized[language]) {
+            // Try English first as fallback
+            const englishMetadata = localizedMetadataResult.localizedMetadata['en'];
+            if (englishMetadata && englishMetadata.name) {
+              localized[language] = englishMetadata.name;
+            } else {
+              // Use any available metadata name as last resort
+              const anyMetadata = Object.values(localizedMetadataResult.localizedMetadata)[0];
+              if (anyMetadata && anyMetadata.name) {
+                localized[language] = anyMetadata.name;
+              }
+            }
+          }
+        }
+        
+        // If we have complete localized names from metadata, return them
+        if (this.options.languages.every(lang => localized[lang])) {
+          return localized as LocalizedString;
+        }
+      }
+    }
+    
+    // Fallback to folder-based name extraction
+    this.logger.debug(`Falling back to folder names for category: ${pathSegment}`);
+    
+    // Group files by language to extract localized names from folder structure
     const filesByLanguage = this.groupFilesByLanguage(files);
     
     for (const language of this.options.languages) {
+      // Skip if we already have this language from metadata
+      if (localized[language]) continue;
+      
       const languageFiles = filesByLanguage[language] || [];
       
       if (languageFiles.length > 0) {
