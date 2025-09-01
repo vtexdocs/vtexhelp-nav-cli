@@ -75,6 +75,8 @@ export interface GenerationOptions {
   verbose: boolean;
   interactive: boolean;
   branch?: string;
+  knownIssuesBranch?: string;
+  sparseCheckout?: boolean;
   force?: boolean;
   showWarnings?: boolean;
   // Cross-language linking options

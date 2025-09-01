@@ -13,6 +13,8 @@ export interface GenerateSimpleOptions {
   sections?: string[];
   verbose?: boolean;
   branch?: string;
+  knownIssuesBranch?: string;
+  sparseCheckout?: boolean;
   force?: boolean;
   logFile?: string;
   showWarnings?: boolean;
@@ -32,6 +34,8 @@ export default async function generateSimple(options: GenerateSimpleOptions): Pr
     sections: options.sections,
     verbose: options.verbose,
     branch: options.branch,
+    knownIssuesBranch: options.knownIssuesBranch,
+    sparseCheckout: options.sparseCheckout,
     force: options.force,
     logFile: options.logFile,
     showWarnings: options.showWarnings,

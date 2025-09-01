@@ -18,7 +18,9 @@ export function createSimpleGenerateCommand() {
     .option('-l, --languages <langs>', 'Comma-separated languages to process (en,es,pt)', 'en,es,pt')
     .option('-s, --sections <sections>', 'Comma-separated sections to process (leave empty for all)')
     .option('-v, --verbose', 'Show detailed log lines in terminal', false)
-    .option('-b, --branch <branch>', 'Git branch to clone', 'main')
+    .option('-b, --branch <branch>', 'Git branch to clone for content repository', 'main')
+    .option('--known-issues-branch <branch>', 'Git branch to clone for known-issues repository', 'main')
+    .option('--sparse-checkout', 'Use sparse checkout to only clone content files (.md, .mdx, .json, .yaml)', true)
     .option('-f, --force', 'Force overwrite existing content directory', false)
     .option('--log-file <file>', 'Export detailed logs to file')
     .option('--show-warnings', 'Display detailed analysis of all warnings', false)
@@ -47,6 +49,8 @@ export function createSimpleGenerateCommand() {
           sections,
           verbose: options.verbose,
           branch: options.branch,
+          knownIssuesBranch: options.knownIssuesBranch,
+          sparseCheckout: options.sparseCheckout,
           force: options.force,
           logFile: options.logFile,
           showWarnings: options.showWarnings,

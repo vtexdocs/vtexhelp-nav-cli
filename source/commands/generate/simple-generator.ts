@@ -1,6 +1,5 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { execa } from 'execa';
 import type { 
   GenerationOptions, 
   ScanResult,
@@ -16,9 +15,8 @@ import { CrossLanguageLinker } from './linker.js';
 import { NavigationTransformer } from './transformer.js';
 import { NavigationValidator } from './validator.js';
 import { DualLogger } from './ui/logger.js';
+import { RepositoryManager } from './repository-manager.js';
 
-const CONTENT_REPO_URL = 'https://github.com/vtexdocs/help-center-content.git';
-const KNOWN_ISSUES_REPO_URL = 'https://github.com/vtexdocs/known-issues.git';
 const DEFAULT_CONTENT_DIR = '.vtexhelp-content';
 
 export class SimpleNavigationGenerator {
@@ -26,6 +24,7 @@ export class SimpleNavigationGenerator {
   private startTime: number;
   private allWarnings: string[] = [];
   private logger: DualLogger;
+  private repositoryManager: RepositoryManager;
 
   constructor(options: Partial<GenerationOptions>) {
     this.options = {
@@ -40,6 +39,8 @@ export class SimpleNavigationGenerator {
       verbose: options.verbose ?? false,
       interactive: false, // Always false for simple generator
       branch: options.branch || 'main',
+      knownIssuesBranch: options.knownIssuesBranch || 'main',
+      sparseCheckout: options.sparseCheckout ?? false,
       force: options.force ?? false,
       showWarnings: options.showWarnings ?? false
     };
@@ -48,6 +49,10 @@ export class SimpleNavigationGenerator {
     
     this.startTime = Date.now();
     this.logger = new DualLogger(this.options);
+    this.repositoryManager = new RepositoryManager({
+      force: this.options.force,
+      verbose: this.options.verbose
+    });
   }
 
   private shouldIncludeKnownIssues(): boolean {
@@ -79,20 +84,11 @@ export class SimpleNavigationGenerator {
       }
       console.log('');
 
-      // Phase 0: Ensure content repository is available
-      const contentReady = await this.ensureContentRepository();
-      if (!contentReady) {
-        this.log('error', 'Content repository not available');
+      // Phase 0: Ensure repositories are available
+      const reposReady = await this.ensureRepositories();
+      if (!reposReady) {
+        this.log('error', 'Repository setup failed');
         return false;
-      }
-
-      // Phase 0.5: Ensure known-issues repository if enabled
-      if (this.shouldIncludeKnownIssues()) {
-        const knownIssuesReady = await this.ensureKnownIssuesRepository();
-        if (!knownIssuesReady) {
-          this.log('error', 'Known-issues repository not available');
-          return false;
-        }
       }
 
       // Phase 1: Scan directory and parse files
@@ -159,95 +155,37 @@ export class SimpleNavigationGenerator {
     }
   }
 
-  private async ensureContentRepository(): Promise<boolean> {
-    this.logPhase('Initializing Content Repository');
-    
+  private async ensureRepositories(): Promise<boolean> {
+    this.logPhase('Initializing Repositories');
+
     try {
-      const absoluteContentDir = path.resolve(this.options.contentDir);
-      const dirExists = await fs.stat(absoluteContentDir).catch(() => false);
+      // Create repository configurations
+      const repoConfigs = RepositoryManager.createStandardConfigs(
+        this.options.contentDir,
+        this.options.branch,
+        this.options.knownIssuesBranch,
+        this.options.sparseCheckout
+      );
 
-      if (dirExists && !this.options.force) {
-        const docsPath = path.join(absoluteContentDir, 'docs');
-        const docsExists = await fs.stat(docsPath).catch(() => false);
-        
-        if (docsExists) {
-          this.log('info', 'Using existing content repository', { path: absoluteContentDir });
-          return true;
-        }
-        this.log('warn', 'Content directory exists but no docs found, re-cloning');
-      }
-      
-      if (dirExists) {
-        this.log('info', 'Force flag set, removing existing content directory');
-        await fs.rm(absoluteContentDir, { recursive: true, force: true });
-      }
-
-      this.log('info', 'Cloning content repository', { 
-        url: CONTENT_REPO_URL,
-        branch: this.options.branch,
-        target: this.options.contentDir 
+      // Filter repositories based on sections
+      const reposToClone = repoConfigs.filter(config => {
+        if (config.name === 'content') return true; // Always clone content
+        if (config.name === 'known-issues') return this.shouldIncludeKnownIssues();
+        return true;
       });
 
-      await execa('git', [
-        'clone',
-        '--depth', '1',
-        '--branch', this.options.branch || 'main',
-        CONTENT_REPO_URL,
-        this.options.contentDir
-      ]);
+      // Clone repositories
+      for (const config of reposToClone) {
+        const success = await this.repositoryManager.ensureRepository(config);
+        if (!success) {
+          return false;
+        }
+      }
 
-      this.log('info', 'Content repository cloned successfully');
       return true;
 
     } catch (error) {
-      this.log('error', 'Failed to ensure content repository', { error: error instanceof Error ? error.message : error });
-      return false;
-    }
-  }
-
-  private async ensureKnownIssuesRepository(): Promise<boolean> {
-    this.logPhase('Initializing Known Issues Repository');
-    
-    try {
-      const knownIssuesDir = path.join(path.dirname(this.options.contentDir), '.vtexhelp-known-issues');
-      const absoluteKnownIssuesDir = path.resolve(knownIssuesDir);
-      const dirExists = await fs.stat(absoluteKnownIssuesDir).catch(() => false);
-
-      if (dirExists && !this.options.force) {
-        const docsPath = path.join(absoluteKnownIssuesDir, 'docs');
-        const docsExists = await fs.stat(docsPath).catch(() => false);
-        
-        if (docsExists) {
-          this.log('info', 'Using existing known-issues repository', { path: absoluteKnownIssuesDir });
-          return true;
-        }
-        this.log('warn', 'Known-issues directory exists but no docs found, re-cloning');
-      }
-      
-      if (dirExists) {
-        this.log('info', 'Force flag set, removing existing known-issues directory');
-        await fs.rm(absoluteKnownIssuesDir, { recursive: true, force: true });
-      }
-
-      this.log('info', 'Cloning known-issues repository', {
-        url: KNOWN_ISSUES_REPO_URL,
-        branch: 'main',
-        target: knownIssuesDir
-      });
-
-      await execa('git', [
-        'clone',
-        '--depth', '1',
-        '--branch', 'main',
-        KNOWN_ISSUES_REPO_URL,
-        knownIssuesDir
-      ]);
-
-      this.log('info', 'Known-issues repository cloned successfully');
-      return true;
-
-    } catch (error) {
-      this.log('error', 'Failed to ensure known-issues repository', { error: error instanceof Error ? error.message : error });
+      this.log('error', 'Failed to ensure repositories', { error: error instanceof Error ? error.message : error });
       return false;
     }
   }
