@@ -74,6 +74,10 @@
           "enum": ["category", "markdown"],
           "description": "Type of node: 'category' for containers, 'markdown' for documents"
         },
+        "order": {
+          "type": "number",
+          "description": "Order for sorting (optional)"
+        },
         "children": {
           "type": "array",
           "description": "Child nodes (categories or documents)",

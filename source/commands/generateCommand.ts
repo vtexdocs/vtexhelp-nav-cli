@@ -23,6 +23,7 @@ export function createSimpleGenerateCommand() {
     .option('--sparse-checkout', 'Use sparse checkout to only clone content files (.md, .mdx, .json, .yaml)', true)
     .option('-f, --force', 'Force overwrite existing content directory', false)
     .option('--log-file <file>', 'Export detailed logs to file')
+    .option('--preserve-order', 'Preserve order fields in output for debugging', false)
     .option('--show-warnings', 'Display detailed analysis of all warnings', false)
     .action(async (options: any) => {
       try {
@@ -54,6 +55,7 @@ export function createSimpleGenerateCommand() {
           force: options.force,
           logFile: options.logFile,
           showWarnings: options.showWarnings,
+          preserveOrder: options.preserveOrder,
           // pass through strict flag (not typed in GenerationOptions)
           ...(options.strict ? { strict: true } : {})
         });

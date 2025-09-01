@@ -14,12 +14,21 @@ export interface FrontMatter {
   [key: string]: any; // Allow additional fields
 }
 
+export interface CategoryMetadata {
+  id: string;
+  name: string;
+  slug: string;
+  order: number;
+  [key: string]: any; // Allow additional fields for future extensibility
+}
+
 export interface ContentFile {
   path: string;
   relativePath: string;
   language: Language;
   section: string; // tutorials, tracks, faq, announcements, troubleshooting
-  category: string;
+  category: string; // Normalized category name
+  originalCategory: string; // Original folder name before normalization
   subcategory?: string;
   fileName: string;
   metadata: FrontMatter;
@@ -32,7 +41,8 @@ export interface CategoryMap {
     children: CategoryMap | ContentFile[];
     path: string;
     level: number;
-    order?: number; // Order for tracks (from order.json)
+    order?: number; // Order from metadata.json or legacy order.json
+    metadata?: CategoryMetadata; // Full metadata from metadata.json
   };
 }
 
@@ -82,6 +92,8 @@ export interface GenerationOptions {
   // Cross-language linking options
   linkSimilarTitles?: boolean;
   linkThreshold?: number;
+  // Debug option to preserve order fields in output
+  preserveOrder?: boolean;
 }
 
 export interface PhaseSummary {

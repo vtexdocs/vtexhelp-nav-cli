@@ -18,6 +18,7 @@ export interface GenerateSimpleOptions {
   force?: boolean;
   logFile?: string;
   showWarnings?: boolean;
+  preserveOrder?: boolean;
 }
 
 export default async function generateSimple(options: GenerateSimpleOptions): Promise<void> {
@@ -39,6 +40,7 @@ export default async function generateSimple(options: GenerateSimpleOptions): Pr
     force: options.force,
     logFile: options.logFile,
     showWarnings: options.showWarnings,
+    preserveOrder: options.preserveOrder,
     interactive: false, // Always non-interactive for simple mode
   };
 

@@ -280,7 +280,7 @@ export class NavigationTransformer {
         
         // Add order information if available
         if (typeof categoryInfo.order === 'number') {
-          (node as any).order = categoryInfo.order;
+          node.order = categoryInfo.order;
         }
         
         return node;
@@ -300,13 +300,20 @@ export class NavigationTransformer {
           return null;
         }
         
-        return {
+        const node = {
           name,
           slug: slug,
           origin: '',
           type: 'category',
           children: subcategoryNodes,
         } as NavigationNode;
+        
+        // Add order information if available
+        if (typeof categoryInfo.order === 'number') {
+          node.order = categoryInfo.order;
+        }
+        
+        return node;
       } else {
         this.logger.warn('Invalid category structure', { categoryInfo });
         return null;
@@ -624,7 +631,9 @@ export class NavigationTransformer {
         bySlug.set(key, {
           ...node,
           name: { ...(node as any).name },
-          children: Array.isArray(node.children) ? [...node.children] : []
+          children: Array.isArray(node.children) ? [...node.children] : [],
+          // Preserve order field if it exists
+          ...(typeof (node as any).order === 'number' && { order: (node as any).order })
         } as NavigationNode);
       } else {
         const existing = bySlug.get(key)! as any;

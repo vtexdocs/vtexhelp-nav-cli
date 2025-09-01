@@ -6,7 +6,8 @@ import type {
   CategoryMap, 
   CategoryHierarchy, 
   GenerationOptions,
-  PhaseSummary 
+  PhaseSummary,
+  CategoryMetadata
 } from './types.js';
 import { DualLogger } from './ui/logger.js';
 import { normalizeCategoryNameAsync as normalizeCategoryName } from '../../utils/categoryNormalization.js';
@@ -334,60 +335,66 @@ export class CategoryBuilder {
 
 
   /**
-   * Read order.json file from a track directory
+   * Read metadata.json file from a category directory
+   * Falls back to legacy order.json for backward compatibility
    */
-  private async readTrackOrder(trackPath: string): Promise<number | undefined> {
+  private async readCategoryMetadata(categoryPath: string): Promise<{ order?: number; metadata?: CategoryMetadata }> {
     try {
-      const orderJsonPath = path.join(trackPath, 'order.json');
-      const orderExists = await fs.stat(orderJsonPath).catch(() => false);
+      // Try multiple possible directory names for the same category
+      const possiblePaths = [
+        categoryPath, // Try the given path first
+        categoryPath.replace(/-/g, '-&-'), // Try with & between dashes
+        categoryPath.replace(/-/g, ' & '), // Try with spaces around &
+        categoryPath.replace(/-/g, '_'), // Try with underscores
+      ];
       
-      if (!orderExists) {
-        return undefined;
+      for (const possiblePath of possiblePaths) {
+        // First try to read metadata.json
+        const metadataJsonPath = path.join(possiblePath, 'metadata.json');
+        const metadataExists = await fs.stat(metadataJsonPath).catch(() => false);
+        
+        if (metadataExists) {
+          console.log(`[METADATA] Found metadata.json at: ${metadataJsonPath}`);
+          const metadataContent = await fs.readFile(metadataJsonPath, 'utf8');
+          const metadataData = JSON.parse(metadataContent) as CategoryMetadata;
+          
+          if (typeof metadataData.order === 'number') {
+            return { 
+              order: metadataData.order, 
+              metadata: metadataData 
+            };
+          }
+          
+          this.logger.warn(`Invalid metadata.json format in: ${metadataJsonPath}`, {
+            metadataData
+          });
+          return { metadata: metadataData };
+        }
+        
+        // Fallback to legacy order.json for backward compatibility
+        const orderJsonPath = path.join(possiblePath, 'order.json');
+        const orderExists = await fs.stat(orderJsonPath).catch(() => false);
+        
+        if (orderExists) {
+          const orderContent = await fs.readFile(orderJsonPath, 'utf8');
+          const orderData = JSON.parse(orderContent);
+          
+          if (typeof orderData.order === 'number') {
+            this.logger.debug(`Using legacy order.json in: ${orderJsonPath}`);
+            return { order: orderData.order };
+          }
+          
+          this.logger.warn(`Invalid order.json format in: ${orderJsonPath}`, {
+            orderData
+          });
+        }
       }
       
-      const orderContent = await fs.readFile(orderJsonPath, 'utf8');
-      const orderData = JSON.parse(orderContent);
-      
-      if (typeof orderData.order === 'number') {
-        return orderData.order;
-      }
-      
-      this.logger.warn(`Invalid order.json format in: ${orderJsonPath}`, {
-        orderData
-      });
-      return undefined;
+      return {};
     } catch (error) {
-      this.logger.debug(`Failed to read order.json from: ${trackPath}`, { error });
-      return undefined;
+      this.logger.debug(`Failed to read metadata from: ${categoryPath}`, { error });
+      return {};
     }
-  }
-
-  /**
-   * Get the track directory path for reading order.json
-   */
-  private getTrackDirectoryPath(file: ContentFile): string {
-    // For tracks, the file path structure is typically:
-    // .../docs/en/tracks/[track-topic]/[track-name]/article.md
-    // We want to get the track-name directory path
-    const pathSegments = file.relativePath.split(path.sep);
-    
-    if (pathSegments.length >= 2) {
-      // Get the track directory (second level: [track-topic]/[track-name])
-      const trackTopicDir = pathSegments[0];
-      const trackDir = pathSegments[1];
-      
-      // Build the full path to the track directory
-      // The file.path already includes the language and section, so we just need to
-      // go up to the track directory (remove the filename part)
-      const fileDir = path.dirname(file.path);
-      
-      if (trackTopicDir && trackDir) {
-        // fileDir is already: .vtexhelp-content/docs/en/tracks/[track-topic]/[track-name]
-        return fileDir;
-      }
-    }
-    
-    return '';
   }
 
   private async buildNestedCategoryFromPath(
@@ -415,14 +422,44 @@ export class CategoryBuilder {
           pathParts.slice(0, i + 1)
         );
         
-        // For tracks, read order.json for track-level ordering (second level)
+        // Read metadata.json for category-level metadata (order, name, etc.)
         let order: number | undefined = undefined;
-        if (section === 'tracks' && i === 1 && files.length > 0) {
-          // This is a track (second level in tracks hierarchy)
-          const trackDirPath = this.getTrackDirectoryPath(files[0]!);
-          if (trackDirPath) {
-            order = await this.readTrackOrder(trackDirPath);
-            this.logger.debug(`Track order for ${levelPath}:`, { order, trackDirPath });
+        let categoryMetadata: CategoryMetadata | undefined = undefined;
+        
+        if (files.length > 0) {
+          // Get the first file to determine base path structure
+          const sampleFile = files[0]!;
+          
+          // For the current level, build the correct directory path using original folder names
+          // The pathParts array represents the hierarchical path we're building (normalized)
+          // But we need to use the original folder structure from the sample file
+          const targetLevel = i + 1;
+          
+          // Build the full path to the category directory using original folder names
+          const sampleFileFull = sampleFile.path;
+          const relativePathFull = sampleFile.relativePath;
+          
+          // The base path should be everything before the relative path
+          const sectionBasePath = sampleFileFull.substring(0, sampleFileFull.length - relativePathFull.length);
+          
+          // Extract original path segments from the relative path instead of using normalized pathParts
+          const originalPathSegments = path.dirname(relativePathFull).split(path.sep).filter(part => part !== '.');
+          const categorySegments = originalPathSegments.slice(0, targetLevel);
+          
+          if (sectionBasePath) {
+            const categoryDirPath = path.join(sectionBasePath, ...categorySegments);
+            
+            const metadataResult = await this.readCategoryMetadata(categoryDirPath);
+            order = metadataResult.order;
+            categoryMetadata = metadataResult.metadata;
+            
+            if (order !== undefined || categoryMetadata) {
+              this.logger.debug(`Category metadata found for ${levelPath}:`, { 
+                order, 
+                metadata: categoryMetadata, 
+                categoryDirPath 
+              });
+            }
           }
         }
         
@@ -431,7 +468,8 @@ export class CategoryBuilder {
           children: isLeafLevel ? this.sortTrackArticles(files, section) : {},
           path: levelPath,
           level: i + 1,
-          ...(order !== undefined && { order })
+          ...(order !== undefined && { order }),
+          ...(categoryMetadata && { metadata: categoryMetadata })
         };
         
         this.logger.debug(`Created hierarchical category: ${levelPath}`, {

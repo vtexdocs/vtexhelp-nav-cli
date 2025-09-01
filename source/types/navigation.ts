@@ -33,6 +33,9 @@ export interface NavigationNode {
   /** Type of node: 'category' for containers, 'markdown' for documents */
   type: NodeType;
   
+  /** Order for sorting (optional) */
+  order?: number;
+  
   /** Child nodes - can contain both categories and documents */
   children: NavigationNode[];
 }

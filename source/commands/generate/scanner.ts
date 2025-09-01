@@ -219,7 +219,8 @@ export class ContentScanner {
       const relativePath = path.relative(path.join(contentDir, 'docs', language, section), filePath);
       const pathParts = path.dirname(relativePath).split(path.sep).filter(part => part !== '.');
 
-      const category = pathParts.length > 0 ? pathParts[0] : 'uncategorized';
+      const category = pathParts.length > 0 ? pathParts[0]! : 'uncategorized';
+      const originalCategory = pathParts.length > 0 ? pathParts[0]! : 'uncategorized';
       const subcategory = pathParts.length > 1 ? pathParts[1] : undefined;
 
       const contentFile: ContentFile = {
@@ -228,6 +229,7 @@ export class ContentScanner {
         language,
         section,
         category: normalizeCategoryName(category),
+        originalCategory: originalCategory, // Store the original folder name
         subcategory: subcategory ? normalizeCategoryName(subcategory) : undefined,
         fileName: path.basename(filePath, '.md'),
         metadata: {
