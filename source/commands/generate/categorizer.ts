@@ -172,7 +172,7 @@ export class CategoryBuilder {
     
     for (const file of files) {
       // Extract canonical hierarchical path based on section type and cross-language unification
-      const canonicalSegments = this.extractUnifiedCanonicalPath(section, file, files);
+      const canonicalSegments = this.extractUnifiedCanonicalPath(file, files);
       if (canonicalSegments.length === 0) continue;
       
       const fullPath = canonicalSegments.join('/');
@@ -196,7 +196,7 @@ export class CategoryBuilder {
   /**
    * Extracts canonical path segments for any section type with proper cross-language unification
    */
-  private extractUnifiedCanonicalPath(section: string, file: ContentFile, allFiles: ContentFile[]): string[] {
+  private extractUnifiedCanonicalPath(file: ContentFile, allFiles: ContentFile[]): string[] {
     // For all sections, find the canonical folder structure using English as the reference
     let canonicalFile: ContentFile | undefined = file;
     
@@ -225,14 +225,14 @@ export class CategoryBuilder {
     }
 
     // Extract directory segments using the canonical file's folder structure
-    return this.extractCanonicalCategoryPath(section, canonicalFile);
+    return this.extractCanonicalCategoryPath(canonicalFile);
   }
 
   /**
    * Extract canonical category path using the canonical file's folder structure
    * This ensures proper cross-language unification for all sections
    */
-  private extractCanonicalCategoryPath(section: string, canonicalFile: ContentFile): string[] {
+  private extractCanonicalCategoryPath(canonicalFile: ContentFile): string[] {
     const dirPath = path.dirname(canonicalFile.relativePath);
     
     if (!dirPath || dirPath === '.' || dirPath === '') {
@@ -246,18 +246,9 @@ export class CategoryBuilder {
       return this.normalizeCanonicalSegment(segment);
     });
     
-    if (section === 'tracks') {
-      // Tracks: tracks/[track-topic]/[track-name] -> hierarchical processing
-      // This handles the Track Topics > Tracks > Track Articles structure
-      return canonicalSegments; // Keep full hierarchy: ['marketplace', 'integrating-with-google-shopping']
-    } else if (section === 'tutorials') {
-      // Tutorials: tutorials/[category]/[subcategory]/... -> hierarchical processing  
-      return canonicalSegments; // Keep full hierarchy: ['b2b', 'overview']
-    } else {
-      // Other sections (FAQ, troubleshooting, etc.): section/[category] -> flat with unification
-      // Take only the first level but normalize for cross-language unification
-      return canonicalSegments.slice(0, 1); // Just the canonical category: ['store-operations']
-    }
+    // All sections: respect the natural folder hierarchy
+    // If folders are flat, navigation will be flat; if nested, navigation will be nested
+    return canonicalSegments; // Keep full hierarchy as defined by folder structure
   }
   
   /**
