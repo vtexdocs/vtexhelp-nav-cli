@@ -217,8 +217,8 @@ export class NavigationTransformer {
     // Merge categories by the English slug so categories are localized entities
     const merged = this.mergeCategoryNodeLists(nonEmpty);
 
-    // Sort merged categories based on section-specific ordering rules
-    this.sortCategoryNodes(merged, sectionName);
+    // Sort merged categories based on order field if available
+    this.sortCategoryNodes(merged);
 
     return merged;
   }
@@ -473,42 +473,33 @@ export class NavigationTransformer {
   }
 
   /**
-   * Sort category nodes based on section-specific rules
+   * Sort category nodes based on order field if available, falling back to title
    */
-  private sortCategoryNodes(nodes: NavigationNode[], sectionName?: string): void {
-    if (sectionName === 'tracks') {
-      // For tracks, sort categories (tracks) by their order property from order.json
-      nodes.sort((a, b) => {
-        // Extract order values from the category data
-        const orderA = (a as any).order;
-        const orderB = (b as any).order;
-        
-        // If both have order values, sort by order
-        if (typeof orderA === 'number' && typeof orderB === 'number') {
-          return orderA - orderB;
-        }
-        
-        // If only one has an order, prioritize the one with order
-        if (typeof orderA === 'number' && typeof orderB !== 'number') {
-          return -1;
-        }
-        if (typeof orderB === 'number' && typeof orderA !== 'number') {
-          return 1;
-        }
-        
-        // If neither has order, sort by English title
-        const titleA = ((a.name as any).en || '').toLowerCase();
-        const titleB = ((b.name as any).en || '').toLowerCase();
-        return titleA.localeCompare(titleB);
-      });
-    } else {
-      // Default sorting by English title for other sections
-      nodes.sort((a, b) => {
-        const titleA = ((a.name as any).en || '').toLowerCase();
-        const titleB = ((b.name as any).en || '').toLowerCase();
-        return titleA.localeCompare(titleB);
-      });
-    }
+  private sortCategoryNodes(nodes: NavigationNode[]): void {
+    // For all sections, sort by order property from metadata.json if available
+    nodes.sort((a, b) => {
+      // Extract order values from the category data
+      const orderA = (a as any).order;
+      const orderB = (b as any).order;
+      
+      // If both have order values, sort by order
+      if (typeof orderA === 'number' && typeof orderB === 'number') {
+        return orderA - orderB;
+      }
+      
+      // If only one has an order, prioritize the one with order
+      if (typeof orderA === 'number' && typeof orderB !== 'number') {
+        return -1;
+      }
+      if (typeof orderB === 'number' && typeof orderA !== 'number') {
+        return 1;
+      }
+      
+      // If neither has order, sort by English title
+      const titleA = ((a.name as any).en || '').toLowerCase();
+      const titleB = ((b.name as any).en || '').toLowerCase();
+      return titleA.localeCompare(titleB);
+    });
   }
 
   private async buildDocumentNode(
