@@ -67,6 +67,8 @@ Generation pipeline:
 
 ### Validation
 
+See also: Troubleshooting guide at docs/troubleshooting.md
+
 - JSON Schema (Draft‑07) at `source/schemas/navigation.schema.json`
   - name and slug are LocalizedString objects with en, es, pt keys
   - Categories: type=category, children >= 1
