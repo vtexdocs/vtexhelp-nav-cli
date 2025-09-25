@@ -462,6 +462,20 @@ export class NavigationTransformer {
         const titleB = ((b.name as any).en || '').toLowerCase();
         return titleA.localeCompare(titleB);
       });
+    } else if (sectionName === 'announcements') {
+      // For announcements, sort by date (newest first) using YYYY-MM-DD prefix in slug if available
+      nodes.sort((a, b) => {
+        const dateA = this.extractDateFromNodeSlug(a);
+        const dateB = this.extractDateFromNodeSlug(b);
+        if (dateA !== dateB) {
+          // Descending: newest first
+          return dateB - dateA;
+        }
+        // Fallback to English title alphabetical for stable ordering
+        const titleA = ((a.name as any).en || '').toLowerCase();
+        const titleB = ((b.name as any).en || '').toLowerCase();
+        return titleA.localeCompare(titleB);
+      });
     } else {
       // Default sorting by English title for other sections
       nodes.sort((a, b) => {
@@ -500,6 +514,29 @@ export class NavigationTransformer {
       const titleB = ((b.name as any).en || '').toLowerCase();
       return titleA.localeCompare(titleB);
     });
+  }
+
+  // Extract a sortable date (milliseconds since epoch) from a document node's slug.
+  // Supports slugs starting with YYYY-MM-DD, falling back to other locales if EN is empty.
+  private extractDateFromNodeSlug(node: NavigationNode): number {
+    const anyNode = node as any;
+    const slugObj = anyNode.slug;
+    let s = '';
+    if (typeof slugObj === 'string') {
+      s = slugObj;
+    } else if (slugObj && typeof slugObj === 'object') {
+      s = slugObj.en || slugObj.es || slugObj.pt || '';
+    }
+    return this.extractDateFromSlugText(s);
+  }
+
+  private extractDateFromSlugText(text: string): number {
+    // Match prefix like 2025-09-17-...
+    const m = /^([0-9]{4})-([0-9]{2})-([0-9]{2})(?:-|$)/.exec(text || '');
+    if (!m) return 0;
+    const [, y, mm, dd] = m;
+    const ts = Date.parse(`${y}-${mm}-${dd}T00:00:00Z`);
+    return Number.isNaN(ts) ? 0 : ts;
   }
 
   private async buildDocumentNode(
