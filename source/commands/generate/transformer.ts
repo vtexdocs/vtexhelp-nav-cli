@@ -1,17 +1,17 @@
 import * as slugifyLib from 'slugify';
-import type { 
-  NavigationNode, 
+import type {
+  NavigationNode,
   LocalizedString,
   NavbarItem
 } from '../../types/navigation.js';
 
 // Temporary type definition
 type NavigationData = any;
-import type { 
+import type {
   CategoryHierarchy,
   ContentFile,
   GenerationOptions,
-  PhaseSummary 
+  PhaseSummary
 } from './types.js';
 import { DualLogger } from './ui/logger.js';
 import { getSectionSlugPrefix, getSectionConfig } from '../../config/sections.config.js';
@@ -28,7 +28,7 @@ export class NavigationTransformer {
   public async transformToNavigation(hierarchy: CategoryHierarchy): Promise<NavigationData> {
     this.logger.startPhase('Navigation Generation');
     const startTime = Date.now();
-    
+
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -42,7 +42,7 @@ export class NavigationTransformer {
       // Build navbar structure with duplicate tracking
       const { navbar, duplicateWarnings } = await this.buildNavbar(hierarchy);
       warnings.push(...duplicateWarnings);
-      
+
       const navigationData: NavigationData = {
         navbar,
       };
@@ -93,28 +93,28 @@ export class NavigationTransformer {
 
   private async buildNavbar(hierarchy: CategoryHierarchy): Promise<{ navbar: NavbarItem[], duplicateWarnings: string[] }> {
     this.logger.info('Building unified multilingual navigation structure');
-    
+
     const sections: NavbarItem[] = [];
     const allDuplicateWarnings: string[] = [];
-    
+
     for (const [sectionName, categoryMap] of Object.entries(hierarchy.sections)) {
       if (this.options.sections.length > 0 && !this.options.sections.includes(sectionName)) {
         continue;
       }
 
       const { section, duplicateWarnings } = await this.buildNavigationSection(
-        sectionName, 
-        categoryMap, 
+        sectionName,
+        categoryMap,
         hierarchy
       );
-      
+
       if (section) {
         sections.push(section);
       }
-      
+
       allDuplicateWarnings.push(...duplicateWarnings);
     }
-    
+
     this.logger.info('Completed unified navigation structure', {
       sections: sections.length,
       duplicatesFound: allDuplicateWarnings.length,
@@ -128,7 +128,7 @@ export class NavigationTransformer {
     categoryMap: any,
     hierarchy: CategoryHierarchy
   ): Promise<{ section: NavbarItem | null, duplicateWarnings: string[] }> {
-    
+
     try {
       // Create section name mapping from config (already has all three languages)
       const sectionConfig = getSectionConfig(sectionName);
@@ -145,10 +145,10 @@ export class NavigationTransformer {
 
       // Build category tree (unified across all languages)
       const categories = await this.buildCategoryNodes(
-        categoryMap, 
-        hierarchy, 
-        sectionProcessedSlugs, 
-        slugToFileMap, 
+        categoryMap,
+        hierarchy,
+        sectionProcessedSlugs,
+        slugToFileMap,
         duplicateWarnings,
         sectionName
       );
@@ -194,18 +194,18 @@ export class NavigationTransformer {
 
       try {
         const node = await this.buildNavigationNode(
-          categoryInfo, 
-          hierarchy, 
-          sectionProcessedSlugs, 
-          slugToFileMap, 
-          duplicateWarnings, 
+          categoryInfo,
+          hierarchy,
+          sectionProcessedSlugs,
+          slugToFileMap,
+          duplicateWarnings,
           sectionName
         );
         if (node) {
           nodes.push(node);
         }
       } catch (error) {
-        this.logger.error(`Failed to build node for category: ${categoryPath}`, { 
+        this.logger.error(`Failed to build node for category: ${categoryPath}`, {
           error
         });
       }
@@ -231,7 +231,7 @@ export class NavigationTransformer {
     duplicateWarnings?: string[],
     sectionName?: string
   ): Promise<NavigationNode | null> {
-    
+
     try {
       // Ensure category name has all required languages with empty string fallback
       const rawName = categoryInfo.name || {};
@@ -240,35 +240,35 @@ export class NavigationTransformer {
         es: '',
         pt: ''
       };
-      
+
       // Populate all required languages
       for (const lang of this.options.languages) {
         if (lang === 'en' || lang === 'es' || lang === 'pt') {
           name[lang] = rawName[lang] || '';
         }
       }
-      
+
       const children = categoryInfo.children;
-      
+
       // Generate per-locale category slugs from localized names, avoiding conflicts with child document slugs per locale
-      const slug = this.generateLocalizedCategorySlugs(name, children);
+      const slug = this.generateLocalizedCategorySlugs(name, children, categoryInfo.localizedMetadata);
 
       if (Array.isArray(children)) {
         // This is a category with documents
         const documents = await this.buildDocumentNodes(
-          children, 
-          hierarchy, 
-          sectionProcessedSlugs, 
-          slugToFileMap, 
-          duplicateWarnings, 
+          children,
+          hierarchy,
+          sectionProcessedSlugs,
+          slugToFileMap,
+          duplicateWarnings,
           sectionName
         );
-        
+
         // Prune empty categories (no leaf documents)
         if (!documents || documents.length === 0) {
           return null;
         }
-        
+
         const node = {
           name,
           // Categories now require localized slugs; all locales filled from localized names with conflict resolution
@@ -277,29 +277,29 @@ export class NavigationTransformer {
           type: 'category',
           children: documents,
         } as NavigationNode;
-        
+
         // Add order information if available
         if (typeof categoryInfo.order === 'number') {
           node.order = categoryInfo.order;
         }
-        
+
         return node;
       } else if (children && typeof children === 'object') {
         // This is a category with subcategories
         const subcategoryNodes = await this.buildCategoryNodes(
-          children, 
-          hierarchy, 
-          sectionProcessedSlugs, 
-          slugToFileMap, 
-          duplicateWarnings, 
+          children,
+          hierarchy,
+          sectionProcessedSlugs,
+          slugToFileMap,
+          duplicateWarnings,
           sectionName
         );
-        
+
         // Prune empty categories (no subcategories/documents)
         if (!subcategoryNodes || subcategoryNodes.length === 0) {
           return null;
         }
-        
+
         const node = {
           name,
           slug: slug,
@@ -307,12 +307,12 @@ export class NavigationTransformer {
           type: 'category',
           children: subcategoryNodes,
         } as NavigationNode;
-        
+
         // Add order information if available
         if (typeof categoryInfo.order === 'number') {
           node.order = categoryInfo.order;
         }
-        
+
         return node;
       } else {
         this.logger.warn('Invalid category structure', { categoryInfo });
@@ -334,7 +334,7 @@ export class NavigationTransformer {
     sectionName?: string
   ): Promise<NavigationNode[]> {
     const nodes: NavigationNode[] = [];
-    
+
     // Use section-level slug tracking if provided, otherwise fall back to category-level
     const processedSlugs = sectionProcessedSlugs || new Set<string>();
     const fileMap = slugToFileMap || new Map<string, ContentFile>();
@@ -343,17 +343,17 @@ export class NavigationTransformer {
     // Group files by slugEN to handle multilingual documents properly
     const filesBySlugEN = new Map<string, ContentFile[]>();
     const actualDuplicateSlugs = new Map<string, ContentFile[]>(); // Track actual duplicates within same section+language
-    
+
     // First pass: group files and detect actual duplicates
     for (const file of files) {
       const slugEN = file.metadata.slugEN || this.getDocumentSlug(file);
-      
+
       // Group by slugEN for multilingual processing
       if (!filesBySlugEN.has(slugEN)) {
         filesBySlugEN.set(slugEN, []);
       }
       filesBySlugEN.get(slugEN)!.push(file);
-      
+
       // Check for actual duplicates within the same section and language
       const duplicateKey = `${sectionName || 'unknown'}|${file.language}|${slugEN}`;
       if (!actualDuplicateSlugs.has(duplicateKey)) {
@@ -366,7 +366,7 @@ export class NavigationTransformer {
     for (const [duplicateKey, duplicateFiles] of actualDuplicateSlugs) {
       if (duplicateFiles.length > 1) {
         const [section, language, slugEN] = duplicateKey.split('|');
-        
+
         // Only show warnings if --show-warnings is enabled
         if (this.options.showWarnings) {
           const warningMsg = [
@@ -379,11 +379,11 @@ export class NavigationTransformer {
             ].join('\n')).flat(),
             `  ➤ Resolution: Ensure each document has a unique 'slug' or 'slugEN' within section '${section}' and language '${language}'.`
           ].join('\n');
-          
+
           warnings.push(warningMsg);
           this.logger.warn(`\n⚠️  TRUE DUPLICATE SLUG DETECTED:\n${warningMsg}`);
         }
-        
+
         // Skip duplicate files (keep only the first one)
         const filesToSkip = duplicateFiles.slice(1);
         for (const fileToSkip of filesToSkip) {
@@ -399,25 +399,25 @@ export class NavigationTransformer {
         if (processedSlugs.has(slugEN)) {
           continue;
         }
-        
+
         const firstFile = groupFiles[0];
         if (!firstFile) {
           this.logger.warn(`Empty file group for slugEN: ${slugEN}`);
           continue;
         }
-        
+
         processedSlugs.add(slugEN);
         fileMap.set(slugEN, firstFile); // Use first file as representative
-        
+
         // Build node using the first file (they all have the same slugEN so will get the same cross-language data)
         const node = await this.buildDocumentNode(firstFile, hierarchy);
         if (node) {
           nodes.push(node);
         }
       } catch (error) {
-        this.logger.error(`Failed to build document node: ${groupFiles[0]?.path}`, { 
-          error, 
-          slugEN 
+        this.logger.error(`Failed to build document node: ${groupFiles[0]?.path}`, {
+          error,
+          slugEN
         });
       }
     }
@@ -443,12 +443,12 @@ export class NavigationTransformer {
         // Extract order values from the original files (stored in children metadata)
         const orderA = (a as any).order;
         const orderB = (b as any).order;
-        
+
         // If both have order values, sort by order
         if (typeof orderA === 'number' && typeof orderB === 'number') {
           return orderA - orderB;
         }
-        
+
         // If only one has an order, prioritize the one with order
         if (typeof orderA === 'number' && typeof orderB !== 'number') {
           return -1;
@@ -456,7 +456,7 @@ export class NavigationTransformer {
         if (typeof orderB === 'number' && typeof orderA !== 'number') {
           return 1;
         }
-        
+
         // If neither has order, sort by English title
         const titleA = ((a.name as any).en || '').toLowerCase();
         const titleB = ((b.name as any).en || '').toLowerCase();
@@ -495,12 +495,12 @@ export class NavigationTransformer {
       // Extract order values from the category data
       const orderA = (a as any).order;
       const orderB = (b as any).order;
-      
+
       // If both have order values, sort by order
       if (typeof orderA === 'number' && typeof orderB === 'number') {
         return orderA - orderB;
       }
-      
+
       // If only one has an order, prioritize the one with order
       if (typeof orderA === 'number' && typeof orderB !== 'number') {
         return -1;
@@ -508,7 +508,7 @@ export class NavigationTransformer {
       if (typeof orderB === 'number' && typeof orderA !== 'number') {
         return 1;
       }
-      
+
       // If neither has order, sort by English title
       const titleA = ((a.name as any).en || '').toLowerCase();
       const titleB = ((b.name as any).en || '').toLowerCase();
@@ -543,11 +543,11 @@ export class NavigationTransformer {
     file: ContentFile,
     hierarchy: CategoryHierarchy
   ): Promise<NavigationNode | null> {
-    
+
     try {
       // Get cross-language information if available
       const crossLangDoc = hierarchy.crossLanguageMap[file.metadata.slugEN];
-      
+
       let name: LocalizedString;
       let slug: LocalizedString;  // Changed to LocalizedString for documents
 
@@ -567,7 +567,7 @@ export class NavigationTransformer {
           es: '',
           pt: ''
         };
-        
+
         for (const lang of this.options.languages) {
           if ((lang === 'en' || lang === 'es' || lang === 'pt') && lang === file.language) {
             name[lang] = file.metadata.title;
@@ -584,7 +584,7 @@ export class NavigationTransformer {
         type: 'markdown',
         children: [],
       };
-      
+
       // Add order information for tracks if available
       if (typeof file.metadata.order === 'number') {
         (node as any).order = file.metadata.order;
@@ -690,15 +690,32 @@ export class NavigationTransformer {
     return Array.from(bySlug.values());
   }
 
-  private generateLocalizedCategorySlugs(name: LocalizedString, children?: any): LocalizedString {
+  private generateLocalizedCategorySlugs(name: LocalizedString, children?: any, localizedMetadata?: { [lang: string]: any }): LocalizedString {
     const locales: Array<keyof LocalizedString> = ['en','es','pt'];
 
-    // Start with slugified localized names (fallback chain to ensure non-empty)
+    // First, try to use slugs from metadata.json (source of truth)
     const slugs: any = {
-      en: this.slugify(name.en || name.es || name.pt || 'category'),
-      es: this.slugify(name.es || name.en || name.pt || 'category'),
-      pt: this.slugify(name.pt || name.en || name.es || 'category'),
+      en: '',
+      es: '',
+      pt: '',
     };
+
+    // Populate from metadata.json if available
+    if (localizedMetadata) {
+      for (const locale of locales) {
+        const metadata = localizedMetadata[locale];
+        if (metadata && metadata.slug) {
+          slugs[locale] = metadata.slug;
+        }
+      }
+    }
+
+    // Fallback: slugify localized names for any missing slugs
+    for (const locale of locales) {
+      if (!slugs[locale]) {
+        slugs[locale] = this.slugify(name[locale] || name.en || name.es || name.pt || 'category');
+      }
+    }
 
     // If this is a leaf category with document children, gather child slugs per locale
     if (Array.isArray(children)) {
@@ -738,23 +755,23 @@ export class NavigationTransformer {
 
   private countNavigationNodes(navbar: NavbarItem[]): number {
     let count = 0;
-    
+
     for (const section of navbar) {
       count += this.countNodesInSection(section.categories);
     }
-    
+
     return count;
   }
 
   private countNodesInSection(nodes: NavigationNode[]): number {
     let count = nodes.length;
-    
+
     for (const node of nodes) {
       if (node.children && Array.isArray(node.children)) {
         count += this.countNodesInSection(node.children);
       }
     }
-    
+
     return count;
   }
 
@@ -764,13 +781,13 @@ export class NavigationTransformer {
   private addOrderNumbersToArticleNames(nodes: NavigationNode[]): void {
     // Only process markdown (article) nodes
     const articleNodes = nodes.filter(node => (node as any).type === 'markdown');
-    
+
     // Assign position-based order numbers (1, 2, 3, etc.)
     // Since nodes are already sorted, we can use their position
     articleNodes.forEach((node, index) => {
       const orderNumber = index + 1;
       const nodeAny = node as any;
-      
+
       // Add order number prefix to all language variants
       if (nodeAny.name) {
         const name = nodeAny.name as LocalizedString;
@@ -784,7 +801,7 @@ export class NavigationTransformer {
         }
       }
     });
-    
+
     this.logger.debug(`Added order number prefixes to ${articleNodes.length} track articles`);
   }
 }
