@@ -42,7 +42,7 @@ export function loadSectionsConfig(): SectionsConfiguration {
     cachedConfig = {
       sections: {
         tracks: {
-          displayName: { en: 'Start here', es: 'Comece aqui', pt: 'Comece aqui' },
+          displayName: { en: 'Start here', es: 'Comienze aquí', pt: 'Comece aqui' },
           slugPrefix: 'docs/tracks'
         },
         tutorials: {
@@ -50,11 +50,11 @@ export function loadSectionsConfig(): SectionsConfiguration {
           slugPrefix: 'docs/tutorials'
         },
         announcements: {
-          displayName: { en: 'Announcements', es: 'Anuncios', pt: 'Anúncios' },
+          displayName: { en: 'Announcements', es: 'Comunicados', pt: 'Comunicados' },
           slugPrefix: 'announcements'
         },
         faq: {
-          displayName: { en: 'FAQ', es: 'FAQ', pt: 'FAQ' },
+          displayName: { en: 'FAQ', es: 'Preguntas frecuentes', pt: 'Perguntas frequentes' },
           slugPrefix: 'faq'
         },
         'known-issues': {
@@ -62,7 +62,7 @@ export function loadSectionsConfig(): SectionsConfiguration {
           slugPrefix: 'known-issues'
         },
         troubleshooting: {
-          displayName: { en: 'Troubleshooting', es: 'Troubleshooting', pt: 'Troubleshooting' },
+          displayName: { en: 'Troubleshooting', es: 'Resolución de problemas', pt: 'Resolução de problemas' },
           slugPrefix: 'troubleshooting'
         }
       }
