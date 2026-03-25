@@ -42,7 +42,7 @@ export function loadSectionsConfig(): SectionsConfiguration {
     cachedConfig = {
       sections: {
         tracks: {
-          displayName: { en: 'Start here', es: 'Comienze aquí', pt: 'Comece aqui' },
+          displayName: { en: 'Start here', es: 'Comienza aquí', pt: 'Comece aqui' },
           slugPrefix: 'docs/tracks'
         },
         tutorials: {

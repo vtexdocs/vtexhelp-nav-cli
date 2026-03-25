@@ -3,7 +3,7 @@
     "tracks": {
       "displayName": {
         "en": "Start here",
-        "es": "Comienze aquí", 
+        "es": "Comienza aquí", 
         "pt": "Comece aqui"
       },
       "slugPrefix": "docs/tracks"
