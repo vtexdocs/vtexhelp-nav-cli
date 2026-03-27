@@ -521,7 +521,9 @@ export class CategoryBuilder {
         
         currentMap[levelPath] = {
           name: localizedName,
-          children: isLeafLevel ? this.sortTrackArticles(files, section) : {},
+          children: isLeafLevel
+            ? { files: this.sortTrackArticles(files, section), subcategories: {} }
+            : { files: [], subcategories: {} },
           path: levelPath,
           level: i + 1,
           ...(order !== undefined && { order }),
@@ -535,19 +537,25 @@ export class CategoryBuilder {
           fileCount: isLeafLevel ? files.length : 0,
           order
         });
-      } else if (isLeafLevel && Array.isArray(currentMap[levelPath]!.children)) {
-        // If this is a leaf level and we already have files, merge them
-        const existingFiles = currentMap[levelPath]!.children as ContentFile[];
-        const allFiles = [...existingFiles, ...files];
-        currentMap[levelPath]!.children = this.sortTrackArticles(allFiles, section);
+      } else if (isLeafLevel) {
+        // Merge direct .md files at this level (may coexist with subcategories)
+        const entry = currentMap[levelPath]!;
+        const prev = entry.children;
+        const mergedFiles = this.sortTrackArticles([...prev.files, ...files], section);
+        currentMap[levelPath] = {
+          ...entry,
+          children: {
+            files: mergedFiles,
+            subcategories: prev.subcategories,
+          },
+        };
       }
-      
+
       // Move to the next level for non-leaf nodes
       if (!isLeafLevel) {
         currentPath = levelPath;
-        if (typeof currentMap[levelPath]!.children === 'object' && !Array.isArray(currentMap[levelPath]!.children)) {
-          currentMap = currentMap[levelPath]!.children as CategoryMap;
-        }
+        const sub = currentMap[levelPath]!.children.subcategories;
+        currentMap = sub;
       }
     }
   }
@@ -752,8 +760,8 @@ export class CategoryBuilder {
     
     for (const [, category] of Object.entries(categoryMap)) {
       count++;
-      if (category.children && typeof category.children === 'object' && !Array.isArray(category.children)) {
-        count += this.countCategories(category.children as CategoryMap);
+      if (category.children?.subcategories) {
+        count += this.countCategories(category.children.subcategories);
       }
     }
     

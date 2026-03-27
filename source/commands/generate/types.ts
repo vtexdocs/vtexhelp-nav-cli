@@ -35,10 +35,16 @@ export interface ContentFile {
   content: string;
 }
 
+/** Markdown files in this folder and/or nested subfolders as categories */
+export interface CategoryChildren {
+  files: ContentFile[];
+  subcategories: CategoryMap;
+}
+
 export interface CategoryMap {
   [categoryPath: string]: {
     name: LocalizedString;
-    children: CategoryMap | ContentFile[];
+    children: CategoryChildren;
     path: string;
     level: number;
     order?: number; // Order from metadata.json or legacy order.json
