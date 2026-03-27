@@ -9,6 +9,7 @@ import type {
 type NavigationData = any;
 import type {
   CategoryHierarchy,
+  CategoryMap,
   ContentFile,
   GenerationOptions,
   PhaseSummary
@@ -248,76 +249,52 @@ export class NavigationTransformer {
         }
       }
 
-      const children = categoryInfo.children;
+      const children = categoryInfo.children as { files?: ContentFile[]; subcategories?: CategoryMap };
+      const directFiles: ContentFile[] = Array.isArray(children?.files) ? children.files : [];
+      const subcategories: CategoryMap =
+        children?.subcategories && typeof children.subcategories === 'object' ? children.subcategories : {};
 
       // Generate per-locale category slugs from localized names, avoiding conflicts with child document slugs per locale
-      const slug = this.generateLocalizedCategorySlugs(name, children, categoryInfo.localizedMetadata);
+      const slug = this.generateLocalizedCategorySlugs(name, directFiles, categoryInfo.localizedMetadata);
 
-      if (Array.isArray(children)) {
-        // This is a category with documents
-        const documents = await this.buildDocumentNodes(
-          children,
-          hierarchy,
-          sectionProcessedSlugs,
-          slugToFileMap,
-          duplicateWarnings,
-          sectionName
-        );
+      const documentNodes = await this.buildDocumentNodes(
+        directFiles,
+        hierarchy,
+        sectionProcessedSlugs,
+        slugToFileMap,
+        duplicateWarnings,
+        sectionName
+      );
 
-        // Prune empty categories (no leaf documents)
-        if (!documents || documents.length === 0) {
-          return null;
-        }
+      const subcategoryNodes = await this.buildCategoryNodes(
+        subcategories,
+        hierarchy,
+        sectionProcessedSlugs,
+        slugToFileMap,
+        duplicateWarnings,
+        sectionName
+      );
 
-        const node = {
-          name,
-          // Categories now require localized slugs; all locales filled from localized names with conflict resolution
-          slug: slug,
-          origin: '',
-          type: 'category',
-          children: documents,
-        } as NavigationNode;
+      // Subcategories first, then direct markdown (same ordering as mergeCategoryNodeLists)
+      const combinedChildren = [...subcategoryNodes, ...documentNodes];
 
-        // Add order information if available
-        if (typeof categoryInfo.order === 'number') {
-          node.order = categoryInfo.order;
-        }
-
-        return node;
-      } else if (children && typeof children === 'object') {
-        // This is a category with subcategories
-        const subcategoryNodes = await this.buildCategoryNodes(
-          children,
-          hierarchy,
-          sectionProcessedSlugs,
-          slugToFileMap,
-          duplicateWarnings,
-          sectionName
-        );
-
-        // Prune empty categories (no subcategories/documents)
-        if (!subcategoryNodes || subcategoryNodes.length === 0) {
-          return null;
-        }
-
-        const node = {
-          name,
-          slug: slug,
-          origin: '',
-          type: 'category',
-          children: subcategoryNodes,
-        } as NavigationNode;
-
-        // Add order information if available
-        if (typeof categoryInfo.order === 'number') {
-          node.order = categoryInfo.order;
-        }
-
-        return node;
-      } else {
-        this.logger.warn('Invalid category structure', { categoryInfo });
+      if (combinedChildren.length === 0) {
         return null;
       }
+
+      const node = {
+        name,
+        slug: slug,
+        origin: '',
+        type: 'category',
+        children: combinedChildren,
+      } as NavigationNode;
+
+      if (typeof categoryInfo.order === 'number') {
+        node.order = categoryInfo.order;
+      }
+
+      return node;
 
     } catch (error) {
       this.logger.error('Failed to build navigation node', { error, categoryInfo });
@@ -690,7 +667,11 @@ export class NavigationTransformer {
     return Array.from(bySlug.values());
   }
 
-  private generateLocalizedCategorySlugs(name: LocalizedString, children?: any, localizedMetadata?: { [lang: string]: any }): LocalizedString {
+  private generateLocalizedCategorySlugs(
+    name: LocalizedString,
+    documentChildren: ContentFile[],
+    localizedMetadata?: { [lang: string]: any }
+  ): LocalizedString {
     const locales: Array<keyof LocalizedString> = ['en','es','pt'];
 
     // First, try to use slugs from metadata.json (source of truth)
@@ -717,10 +698,10 @@ export class NavigationTransformer {
       }
     }
 
-    // If this is a leaf category with document children, gather child slugs per locale
-    if (Array.isArray(children)) {
+    // If this category has direct .md files, gather their slugs per locale (avoid slug collisions)
+    if (documentChildren.length > 0) {
       const childSlugsByLocale: Record<string, Set<string>> = { en: new Set(), es: new Set(), pt: new Set() };
-      for (const file of children) {
+      for (const file of documentChildren) {
         try {
           const docSlug = this.getDocumentSlug(file);
           const lang = (file?.language || 'en') as keyof LocalizedString;
