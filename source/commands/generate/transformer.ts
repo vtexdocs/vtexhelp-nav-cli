@@ -279,7 +279,9 @@ export class NavigationTransformer {
         sectionName
       );
 
-      const isSingleFile = directFiles.length === 1;
+      // Use documentNodes.length (deduplicated by slugEN across languages) rather than
+      // directFiles.length, which would count EN + PT + ES versions as separate files.
+      const isSingleFile = documentNodes.length === 1;
       const hasSubcats = subcategoryNodes.length > 0;
 
       let categoryName = name;
@@ -299,16 +301,22 @@ export class NavigationTransformer {
           documentNodes.splice(0, 1);
         }
       } else if (hasSubcats) {
-        // Multiple .md files + subfolders → categoryCover: true designates the cover
-        const markedFiles = directFiles.filter(f => f.metadata.categoryCover === true);
-        if (markedFiles.length > 1) {
+        // Multiple .md files + subfolders → categoryCover: true designates the cover.
+        // Deduplicate by slugEN so EN/PT/ES versions of the same file count as one.
+        const markedSlugs = new Set(
+          directFiles
+            .filter(f => f.metadata.categoryCover === true)
+            .map(f => f.metadata.slugEN)
+        );
+        if (markedSlugs.size > 1) {
           this.logger.warn(
             `Multiple files with categoryCover: true in the same folder — cover logic skipped, falling back to regular category.`,
-            { category: categoryInfo.path, files: markedFiles.map(f => f.fileName) }
+            { category: categoryInfo.path, slugs: [...markedSlugs] }
           );
-        } else if (markedFiles.length === 1) {
+        } else if (markedSlugs.size === 1) {
+          const coverSlugEN = [...markedSlugs][0];
           const coverNodeIdx = documentNodes.findIndex(
-            n => n.type === 'markdown' && (n.slug as any)?.en === markedFiles[0]!.metadata.slugEN
+            n => n.type === 'markdown' && (n.slug as any)?.en === coverSlugEN
           );
           if (coverNodeIdx !== -1) {
             const coverNode = documentNodes[coverNodeIdx]!;
