@@ -279,33 +279,46 @@ export class NavigationTransformer {
         sectionName
       );
 
-      // --- Degenerate category: single markdown child, no subcategories ---
-      // A folder with only one .md file and no subfolders is flattened to a
-      // plain markdown node so it doesn't produce an unnecessary category wrapper.
-      const coverFile = directFiles.find(f => f.metadata.categoryCover === true);
-      if (!coverFile && subcategoryNodes.length === 0 && documentNodes.length === 1) {
-        return documentNodes[0] ?? null;
-      }
+      const isSingleFile = directFiles.length === 1;
+      const hasSubcats = subcategoryNodes.length > 0;
 
-      // --- Category cover ---
-      // When a file has categoryCover: true AND the category has subcategories,
-      // that file's title/slug are promoted to the category level and the file
-      // is removed from the children list (clicking the category opens the cover).
       let categoryName = name;
       let categorySlug = slug;
       let hasCover = false;
 
-      if (coverFile && subcategoryNodes.length > 0) {
-        const coverNodeIdx = documentNodes.findIndex(
-          n => n.type === 'markdown' && (n.slug as any)?.en === coverFile.metadata.slugEN
-        );
-        if (coverNodeIdx !== -1) {
-          const coverNode = documentNodes[coverNodeIdx]!;
+      if (isSingleFile && !hasSubcats) {
+        // Single .md, no subfolders → degenerate, flatten to plain markdown
+        return documentNodes[0] ?? null;
+      } else if (isSingleFile && hasSubcats) {
+        // Single .md + subfolders → auto cover, no frontmatter field needed
+        const coverNode = documentNodes[0];
+        if (coverNode) {
           categoryName = coverNode.name as LocalizedString;
           categorySlug = coverNode.slug as LocalizedString;
           hasCover = true;
-          documentNodes.splice(coverNodeIdx, 1);
+          documentNodes.splice(0, 1);
         }
+      } else if (hasSubcats) {
+        // Multiple .md files + subfolders → categoryCover: true designates the cover
+        const markedFiles = directFiles.filter(f => f.metadata.categoryCover === true);
+        if (markedFiles.length > 1) {
+          this.logger.warn(
+            `Multiple files with categoryCover: true in the same folder — cover logic skipped, falling back to regular category.`,
+            { category: categoryInfo.path, files: markedFiles.map(f => f.fileName) }
+          );
+        } else if (markedFiles.length === 1) {
+          const coverNodeIdx = documentNodes.findIndex(
+            n => n.type === 'markdown' && (n.slug as any)?.en === markedFiles[0]!.metadata.slugEN
+          );
+          if (coverNodeIdx !== -1) {
+            const coverNode = documentNodes[coverNodeIdx]!;
+            categoryName = coverNode.name as LocalizedString;
+            categorySlug = coverNode.slug as LocalizedString;
+            hasCover = true;
+            documentNodes.splice(coverNodeIdx, 1);
+          }
+        }
+        // else: no categoryCover marked → regular category, no changes
       }
 
       // Subcategories first, then direct markdown (same ordering as mergeCategoryNodeLists)
