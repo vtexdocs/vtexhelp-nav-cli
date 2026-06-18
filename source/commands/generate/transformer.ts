@@ -660,8 +660,11 @@ export class NavigationTransformer {
       return Array.from(docMap.values());
     };
 
+    // Collect markdown nodes (cover-backed categories) separately — they don't need merging
+    const markdownNodes = nodes.filter(n => (n as any).type === 'markdown');
+
     for (const node of nodes) {
-      if ((node as any).type !== 'category') continue; // should not happen here
+      if ((node as any).type !== 'category') continue;
       const slugVal = (node as any).slug as any;
       const key = typeof slugVal === 'string' ? slugVal : (slugVal?.en || JSON.stringify(slugVal));
       if (!bySlug.has(key)) {
@@ -697,7 +700,7 @@ export class NavigationTransformer {
       }
     }
 
-    return Array.from(bySlug.values());
+    return [...Array.from(bySlug.values()), ...markdownNodes];
   }
 
   private generateLocalizedCategorySlugs(
