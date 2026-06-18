@@ -84,7 +84,7 @@
           "items": {
             "$ref": "#/definitions/navigationNode"
           }
-        }
+        },
       },
       "allOf": [
         {
@@ -100,8 +100,7 @@
           "if": { "properties": { "type": { "const": "markdown" } } },
           "then": {
             "properties": {
-              "slug": { "$ref": "#/definitions/localizedString" },
-              "children": { "type": "array", "maxItems": 0 }
+              "slug": { "$ref": "#/definitions/localizedString" }
             }
           }
         }

@@ -212,8 +212,12 @@ export class NavigationTransformer {
       }
     }
 
-    // Drop categories that ended up empty after pruning
-    const nonEmpty = nodes.filter(n => Array.isArray((n as any).children) && (n as any).children.length > 0);
+    // Drop categories that ended up empty after pruning.
+    // Markdown nodes are kept as-is: they were promoted from degenerate single-file categories.
+    const nonEmpty = nodes.filter(n => {
+      if ((n as any).type === 'markdown') return true;
+      return Array.isArray((n as any).children) && (n as any).children.length > 0;
+    });
 
     // Merge categories by the English slug so categories are localized entities
     const merged = this.mergeCategoryNodeLists(nonEmpty);
@@ -275,26 +279,55 @@ export class NavigationTransformer {
         sectionName
       );
 
+      // --- Degenerate category: single markdown child, no subcategories ---
+      // A folder with only one .md file and no subfolders is flattened to a
+      // plain markdown node so it doesn't produce an unnecessary category wrapper.
+      const coverFile = directFiles.find(f => f.metadata.categoryCover === true);
+      if (!coverFile && subcategoryNodes.length === 0 && documentNodes.length === 1) {
+        return documentNodes[0] ?? null;
+      }
+
+      // --- Category cover ---
+      // When a file has categoryCover: true AND the category has subcategories,
+      // that file's title/slug are promoted to the category level and the file
+      // is removed from the children list (clicking the category opens the cover).
+      let categoryName = name;
+      let categorySlug = slug;
+      let hasCover = false;
+
+      if (coverFile && subcategoryNodes.length > 0) {
+        const coverNodeIdx = documentNodes.findIndex(
+          n => n.type === 'markdown' && (n.slug as any)?.en === coverFile.metadata.slugEN
+        );
+        if (coverNodeIdx !== -1) {
+          const coverNode = documentNodes[coverNodeIdx]!;
+          categoryName = coverNode.name as LocalizedString;
+          categorySlug = coverNode.slug as LocalizedString;
+          hasCover = true;
+          documentNodes.splice(coverNodeIdx, 1);
+        }
+      }
+
       // Subcategories first, then direct markdown (same ordering as mergeCategoryNodeLists)
       const combinedChildren = [...subcategoryNodes, ...documentNodes];
 
-      if (combinedChildren.length === 0) {
+      if (combinedChildren.length === 0 && !hasCover) {
         return null;
       }
 
-      const node = {
-        name,
-        slug: slug,
+      const node: any = {
+        name: categoryName,
+        slug: categorySlug,
         origin: '',
-        type: 'category',
+        type: hasCover ? 'markdown' : 'category',
         children: combinedChildren,
-      } as NavigationNode;
+      };
 
       if (typeof categoryInfo.order === 'number') {
         node.order = categoryInfo.order;
       }
 
-      return node;
+      return node as NavigationNode;
 
     } catch (error) {
       this.logger.error('Failed to build navigation node', { error, categoryInfo });
