@@ -67,7 +67,7 @@ Generation pipeline:
 
 ### Category cover pages
 
-A folder with subfolders can designate one of its direct markdown files as the category's landing page (cover) by adding `categoryCover: true` to its frontmatter. When a cover is set, the category node gets `type: "markdown"` and its `name`/`slug` are taken from the cover file rather than the folder name. The subcategories remain in `children`.
+A folder can designate one of its direct markdown files as the category's landing page (cover) by adding `categoryCover: true` to its frontmatter. When a cover is set, the category node gets `type: "markdown"` and its `name`/`slug` are taken from the cover file rather than the folder name. The other direct files and subcategories remain in `children`.
 
 If more than one file in the same folder is marked `categoryCover: true`, a warning is logged and the folder falls back to a regular `type: "category"`.
 

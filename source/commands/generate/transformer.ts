@@ -279,15 +279,13 @@ export class NavigationTransformer {
         sectionName
       );
 
-      const hasSubcats = subcategoryNodes.length > 0;
-
       let categoryName = name;
       let categorySlug = slug;
       let hasCover = false;
 
-      if (hasSubcats) {
-        // A folder with subfolders becomes a cover-backed markdown node only when a
-        // direct .md file explicitly opts in via categoryCover: true.
+      if (directFiles.length > 0) {
+        // A category becomes a cover-backed markdown node when a direct .md file
+        // explicitly opts in via categoryCover: true.
         // Deduplicate by slugEN so EN/PT/ES versions of the same file count as one.
         const coverFiles = directFiles.filter(f => f.metadata.categoryCover === true);
 
