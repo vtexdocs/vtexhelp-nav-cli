@@ -279,29 +279,17 @@ export class NavigationTransformer {
         sectionName
       );
 
-      // Use documentNodes.length (deduplicated by slugEN across languages) rather than
-      // directFiles.length, which would count EN + PT + ES versions as separate files.
-      const isSingleFile = documentNodes.length === 1;
       const hasSubcats = subcategoryNodes.length > 0;
 
       let categoryName = name;
       let categorySlug = slug;
       let hasCover = false;
 
-      if (isSingleFile && !hasSubcats) {
-        // Single .md, no subfolders → degenerate, flatten to plain markdown
-        return documentNodes[0] ?? null;
-      } else if (isSingleFile && hasSubcats) {
-        // Single .md + subfolders → auto cover, no frontmatter field needed
-        const coverNode = documentNodes[0];
-        if (coverNode) {
-          categoryName = coverNode.name as LocalizedString;
-          categorySlug = coverNode.slug as LocalizedString;
-          hasCover = true;
-          documentNodes.splice(0, 1);
-        }
-      } else if (hasSubcats) {
-        // Multiple .md files + subfolders → categoryCover: true designates the cover.
+      if (hasSubcats) {
+        // No structure-driven auto cover: a folder with subfolders only becomes a
+        // cover-backed markdown node when a direct .md file explicitly opts in via
+        // categoryCover: true. Otherwise it stays a regular category, regardless of
+        // how many direct .md files it has (including exactly one).
         // Deduplicate by slugEN so EN/PT/ES versions of the same file count as one.
         const coverFiles = directFiles.filter(f => f.metadata.categoryCover === true);
 
