@@ -286,10 +286,8 @@ export class NavigationTransformer {
       let hasCover = false;
 
       if (hasSubcats) {
-        // No structure-driven auto cover: a folder with subfolders only becomes a
-        // cover-backed markdown node when a direct .md file explicitly opts in via
-        // categoryCover: true. Otherwise it stays a regular category, regardless of
-        // how many direct .md files it has (including exactly one).
+        // A folder with subfolders becomes a cover-backed markdown node only when a
+        // direct .md file explicitly opts in via categoryCover: true.
         // Deduplicate by slugEN so EN/PT/ES versions of the same file count as one.
         const coverFiles = directFiles.filter(f => f.metadata.categoryCover === true);
 
@@ -311,8 +309,8 @@ export class NavigationTransformer {
           );
         } else if (markedSlugs.size === 1) {
           const coverSlugEN = [...markedSlugs][0];
-          // Match by the __slugEN marker, not slug.en — slug.en is '' for documents
-          // with no EN translation (e.g. PT-only docs), which would otherwise never match.
+          // Match by the __slugEN marker instead of slug.en, since slug.en is empty
+          // for documents with no EN translation.
           const coverNodeIdx = documentNodes.findIndex(
             n => n.type === 'markdown' && (n as any).__slugEN === coverSlugEN
           );
