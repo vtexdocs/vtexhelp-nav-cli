@@ -67,19 +67,11 @@ Generation pipeline:
 
 ### Category cover pages
 
-A folder can designate one of its markdown files as the category's landing page (cover). When a cover is set, the category node gets `type: "markdown"` and its `name`/`slug` are taken from the cover file rather than the folder name. The subcategories remain in `children`.
+A folder can designate one of its direct markdown files as the category's landing page (cover) by adding `categoryCover: true` to its frontmatter. When a cover is set, the category node gets `type: "markdown"` and its `name`/`slug` are taken from the cover file rather than the folder name. The other direct files and subcategories remain in `children`.
 
-The cover is determined by folder structure and, when needed, by a frontmatter field:
+If more than one file in the same folder is marked `categoryCover: true`, a warning is logged and the folder falls back to a regular `type: "category"`.
 
-| Folder contents | `categoryCover` field | Result |
-|---|---|---|
-| Single `.md` + subfolders | any | Cover applied automatically |
-| Single `.md`, no subfolders | any | Flattened to a plain markdown node (no category wrapper) |
-| Multiple `.md` + subfolders | none | Regular `type: "category"` |
-| Multiple `.md` + subfolders | `true` on one file | That file becomes the cover |
-| Multiple `.md` + subfolders | `true` on more than one file | Warning logged, falls back to regular category |
-
-To explicitly mark a file as cover when there are sibling markdown files, add to its frontmatter:
+To mark a file as cover, add to its frontmatter:
 
 ```yaml
 categoryCover: true

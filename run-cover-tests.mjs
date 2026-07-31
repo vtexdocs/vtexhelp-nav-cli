@@ -125,7 +125,7 @@ async function buildNode(transformer, categoryInfo, hierarchy, directFiles, subc
 
 console.log('\nCategory cover scenarios\n');
 
-await test('Case 1 — single .md + subfolders → auto cover (type: markdown, slug from cover file)', async () => {
+await test('Case 1: single .md + subfolders, no categoryCover, stays a regular category', async () => {
   const transformer = new NavigationTransformer(makeLogger(), defaultOptions);
   const node = await buildNode(
     transformer,
@@ -134,12 +134,40 @@ await test('Case 1 — single .md + subfolders → auto cover (type: markdown, s
     [makeFile('overview')],
     makeSubcat('test-category'),
   );
-  assert(node?.type === 'markdown', `expected type markdown, got ${node?.type}`);
-  assert(node?.slug?.en === 'overview', `expected slug.en=overview, got ${node?.slug?.en}`);
-  assert(node?.children?.length > 0, 'expected non-empty children');
+  assert(node?.type === 'category', `expected type category, got ${node?.type}`);
+  const childSlugs = node?.children?.map(c => c?.slug?.en ?? c?.slug);
+  assert(childSlugs?.includes('overview'), `expected overview kept as a direct child, got ${JSON.stringify(childSlugs)}`);
 });
 
-await test('Case 2 — single .md, no subfolders → flattened to plain markdown (no category wrapper)', async () => {
+await test('Case 1b: single .md + subfolders with categoryCover: true becomes the cover', async () => {
+  const transformer = new NavigationTransformer(makeLogger(), defaultOptions);
+  const node = await buildNode(
+    transformer,
+    makeCategoryInfo('test-category'),
+    makeHierarchy(),
+    [makeFile('overview', { categoryCover: true })],
+    makeSubcat('test-category'),
+  );
+  assert(node?.type === 'markdown', `expected type markdown, got ${node?.type}`);
+  assert(node?.slug?.en === 'overview', `expected slug.en=overview, got ${node?.slug?.en}`);
+});
+
+await test('Case 1c: categoryCover: true on a PT-only doc with no EN translation still applies', async () => {
+  const transformer = new NavigationTransformer(makeLogger(), defaultOptions);
+  const node = await buildNode(
+    transformer,
+    makeCategoryInfo('test-category'),
+    makeHierarchy(),
+    [makeFile('overview', { categoryCover: true, locale: 'pt' })],
+    makeSubcat('test-category'),
+  );
+  // slug.en is '' here since there's no EN translation and no crossLanguageMap
+  // entry, so the match has to go through slugEN instead.
+  assert(node?.type === 'markdown', `expected type markdown, got ${node?.type}`);
+  assert(node?.slug?.pt === 'overview', `expected slug.pt=overview, got ${node?.slug?.pt}`);
+});
+
+await test('Case 2: single .md, no subfolders, stays a regular category', async () => {
   const transformer = new NavigationTransformer(makeLogger(), defaultOptions);
   const node = await buildNode(
     transformer,
@@ -148,12 +176,11 @@ await test('Case 2 — single .md, no subfolders → flattened to plain markdown
     [makeFile('release-notes-2024')],
     {},
   );
-  assert(node?.type === 'markdown', `expected type markdown, got ${node?.type}`);
-  assert(node?.slug?.en === 'release-notes-2024', `expected slug.en=release-notes-2024, got ${node?.slug?.en}`);
-  assert(!node?.children?.length, 'expected no children on plain markdown node');
+  assert(node?.type === 'category', `expected type category, got ${node?.type}`);
+  assert(node?.children?.length === 1, `expected one child, got ${node?.children?.length}`);
 });
 
-await test('Case 3 — multiple .md + subfolders, no categoryCover → regular category', async () => {
+await test('Case 3: multiple .md + subfolders, no categoryCover, stays a regular category', async () => {
   const transformer = new NavigationTransformer(makeLogger(), defaultOptions);
   const node = await buildNode(
     transformer,
@@ -165,7 +192,7 @@ await test('Case 3 — multiple .md + subfolders, no categoryCover → regular c
   assert(node?.type === 'category', `expected type category, got ${node?.type}`);
 });
 
-await test('Case 4 — multiple .md + subfolders, one categoryCover: true → that file becomes cover', async () => {
+await test('Case 4: multiple .md + subfolders, one categoryCover: true, that file becomes the cover', async () => {
   const transformer = new NavigationTransformer(makeLogger(), defaultOptions);
   const node = await buildNode(
     transformer,
@@ -180,7 +207,7 @@ await test('Case 4 — multiple .md + subfolders, one categoryCover: true → th
   assert(childSlugs?.some(s => s === 'getting-started'), `expected getting-started in children, got ${JSON.stringify(childSlugs)}`);
 });
 
-await test('Case 5 — multiple categoryCover: true → warning logged, falls back to regular category', async () => {
+await test('Case 5: multiple categoryCover: true, warning logged, falls back to regular category', async () => {
   const warnings = [];
   const transformer = new NavigationTransformer(makeLogger(warnings), defaultOptions);
   const node = await buildNode(
@@ -194,7 +221,7 @@ await test('Case 5 — multiple categoryCover: true → warning logged, falls ba
   assert(warnings.some(w => w.includes('Multiple files with categoryCover: true')), `expected warning, got: ${warnings}`);
 });
 
-await test('Case 6 — EN/PT/ES variants of same slugEN count as one file (auto cover still fires)', async () => {
+await test('Case 6: EN/PT/ES variants of same slugEN, no categoryCover, stays a regular category', async () => {
   const transformer = new NavigationTransformer(makeLogger(), defaultOptions);
   const node = await buildNode(
     transformer,
@@ -203,10 +230,23 @@ await test('Case 6 — EN/PT/ES variants of same slugEN count as one file (auto 
     [makeFile('overview', { locale: 'en' }), makeFile('overview', { locale: 'pt' }), makeFile('overview', { locale: 'es' })],
     makeSubcat('test-category'),
   );
-  assert(node?.type === 'markdown', `expected type markdown (auto cover), got ${node?.type}`);
+  assert(node?.type === 'category', `expected type category, got ${node?.type}`);
 });
 
-await test('Case 8 — categoryCover: true on an EN file warns that it should be set on PT', async () => {
+await test('Case 6b: EN/PT/ES variants of same slugEN with categoryCover: true on PT, cover fires once (slugEN dedup)', async () => {
+  const transformer = new NavigationTransformer(makeLogger(), defaultOptions);
+  const node = await buildNode(
+    transformer,
+    makeCategoryInfo('test-category'),
+    makeHierarchy(),
+    [makeFile('overview', { locale: 'en' }), makeFile('overview', { categoryCover: true, locale: 'pt' }), makeFile('overview', { locale: 'es' })],
+    makeSubcat('test-category'),
+  );
+  assert(node?.type === 'markdown', `expected type markdown (cover), got ${node?.type}`);
+  assert(node?.slug?.en === 'overview', `expected slug.en=overview, got ${node?.slug?.en}`);
+});
+
+await test('Case 8: categoryCover: true on an EN file warns that it should be set on PT', async () => {
   const warnings = [];
   const transformer = new NavigationTransformer(makeLogger(warnings), defaultOptions);
   const node = await buildNode(
@@ -223,7 +263,7 @@ await test('Case 8 — categoryCover: true on an EN file warns that it should be
   );
 });
 
-await test('Case 9 — categoryCover: true on the PT file does not warn', async () => {
+await test('Case 9: categoryCover: true on the PT file does not warn', async () => {
   const warnings = [];
   const transformer = new NavigationTransformer(makeLogger(warnings), defaultOptions);
   await buildNode(
@@ -239,13 +279,13 @@ await test('Case 9 — categoryCover: true on the PT file does not warn', async 
   );
 });
 
-await test('Case 7 — cover-backed markdown node with children is not dropped by pruning', async () => {
+await test('Case 7: cover-backed markdown node with children is not dropped by pruning', async () => {
   const transformer = new NavigationTransformer(makeLogger(), defaultOptions);
   const node = await buildNode(
     transformer,
     makeCategoryInfo('test-category'),
     makeHierarchy(),
-    [makeFile('overview')],
+    [makeFile('overview', { categoryCover: true })],
     makeSubcat('test-category'),
   );
   assert(node != null, 'node should not be null');

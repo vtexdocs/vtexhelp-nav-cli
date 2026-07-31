@@ -279,29 +279,13 @@ export class NavigationTransformer {
         sectionName
       );
 
-      // Use documentNodes.length (deduplicated by slugEN across languages) rather than
-      // directFiles.length, which would count EN + PT + ES versions as separate files.
-      const isSingleFile = documentNodes.length === 1;
-      const hasSubcats = subcategoryNodes.length > 0;
-
       let categoryName = name;
       let categorySlug = slug;
       let hasCover = false;
 
-      if (isSingleFile && !hasSubcats) {
-        // Single .md, no subfolders → degenerate, flatten to plain markdown
-        return documentNodes[0] ?? null;
-      } else if (isSingleFile && hasSubcats) {
-        // Single .md + subfolders → auto cover, no frontmatter field needed
-        const coverNode = documentNodes[0];
-        if (coverNode) {
-          categoryName = coverNode.name as LocalizedString;
-          categorySlug = coverNode.slug as LocalizedString;
-          hasCover = true;
-          documentNodes.splice(0, 1);
-        }
-      } else if (hasSubcats) {
-        // Multiple .md files + subfolders → categoryCover: true designates the cover.
+      if (directFiles.length > 0) {
+        // A category becomes a cover-backed markdown node when a direct .md file
+        // explicitly opts in via categoryCover: true.
         // Deduplicate by slugEN so EN/PT/ES versions of the same file count as one.
         const coverFiles = directFiles.filter(f => f.metadata.categoryCover === true);
 
@@ -323,8 +307,10 @@ export class NavigationTransformer {
           );
         } else if (markedSlugs.size === 1) {
           const coverSlugEN = [...markedSlugs][0];
+          // Match by the __slugEN marker instead of slug.en, since slug.en is empty
+          // for documents with no EN translation.
           const coverNodeIdx = documentNodes.findIndex(
-            n => n.type === 'markdown' && (n.slug as any)?.en === coverSlugEN
+            n => n.type === 'markdown' && (n as any).__slugEN === coverSlugEN
           );
           if (coverNodeIdx !== -1) {
             const coverNode = documentNodes[coverNodeIdx]!;
@@ -451,6 +437,10 @@ export class NavigationTransformer {
         // Build node using the first file (they all have the same slugEN so will get the same cross-language data)
         const node = await this.buildDocumentNode(firstFile, hierarchy);
         if (node) {
+          // Tag with the source slugEN so categoryCover matching doesn't depend on
+          // slug.en being populated (it's '' for documents with no EN translation).
+          // Stripped from the output before writing/validation.
+          (node as any).__slugEN = slugEN;
           nodes.push(node);
         }
       } catch (error) {
