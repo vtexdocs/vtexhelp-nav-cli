@@ -152,6 +152,22 @@ await test('Case 1b — single .md + subfolders + categoryCover: true → explic
   assert(node?.slug?.en === 'overview', `expected slug.en=overview, got ${node?.slug?.en}`);
 });
 
+await test('Case 1c — categoryCover: true on a PT-only doc (no EN translation) → cover still matches via slugEN', async () => {
+  const transformer = new NavigationTransformer(makeLogger(), defaultOptions);
+  const node = await buildNode(
+    transformer,
+    makeCategoryInfo('test-category'),
+    makeHierarchy(),
+    [makeFile('overview', { categoryCover: true, locale: 'pt' })],
+    makeSubcat('test-category'),
+  );
+  // Match must work via slugEN, not slug.en — slug.en is '' here since there's no
+  // EN translation and no crossLanguageMap entry, which used to make the cover silently
+  // fail to apply (the real-world bug: docs without a matched EN slug never matched).
+  assert(node?.type === 'markdown', `expected type markdown, got ${node?.type}`);
+  assert(node?.slug?.pt === 'overview', `expected slug.pt=overview, got ${node?.slug?.pt}`);
+});
+
 await test('Case 2 — single .md, no subfolders → regular category (no structure-driven flatten)', async () => {
   const transformer = new NavigationTransformer(makeLogger(), defaultOptions);
   const node = await buildNode(

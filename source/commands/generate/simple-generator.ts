@@ -300,7 +300,12 @@ export class SimpleNavigationGenerator {
         if ('order' in node) {
           delete node.order;
         }
-        
+
+        // Delete internal-only cover-matching marker if present
+        if ('__slugEN' in node) {
+          delete node.__slugEN;
+        }
+
         // Process children recursively
         if (Array.isArray(node.children)) {
           node.children.forEach(removeOrderFromNode);

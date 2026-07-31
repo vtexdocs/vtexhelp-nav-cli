@@ -311,8 +311,10 @@ export class NavigationTransformer {
           );
         } else if (markedSlugs.size === 1) {
           const coverSlugEN = [...markedSlugs][0];
+          // Match by the __slugEN marker, not slug.en — slug.en is '' for documents
+          // with no EN translation (e.g. PT-only docs), which would otherwise never match.
           const coverNodeIdx = documentNodes.findIndex(
-            n => n.type === 'markdown' && (n.slug as any)?.en === coverSlugEN
+            n => n.type === 'markdown' && (n as any).__slugEN === coverSlugEN
           );
           if (coverNodeIdx !== -1) {
             const coverNode = documentNodes[coverNodeIdx]!;
@@ -439,6 +441,10 @@ export class NavigationTransformer {
         // Build node using the first file (they all have the same slugEN so will get the same cross-language data)
         const node = await this.buildDocumentNode(firstFile, hierarchy);
         if (node) {
+          // Tag with the source slugEN so categoryCover matching doesn't depend on
+          // slug.en being populated (it's '' for documents with no EN translation).
+          // Stripped from the output before writing/validation.
+          (node as any).__slugEN = slugEN;
           nodes.push(node);
         }
       } catch (error) {
