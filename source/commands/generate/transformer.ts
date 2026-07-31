@@ -212,8 +212,12 @@ export class NavigationTransformer {
       }
     }
 
-    // Drop categories that ended up empty after pruning
-    const nonEmpty = nodes.filter(n => Array.isArray((n as any).children) && (n as any).children.length > 0);
+    // Drop categories that ended up empty after pruning.
+    // Markdown nodes are kept as-is: they were promoted from degenerate single-file categories.
+    const nonEmpty = nodes.filter(n => {
+      if ((n as any).type === 'markdown') return true;
+      return Array.isArray((n as any).children) && (n as any).children.length > 0;
+    });
 
     // Merge categories by the English slug so categories are localized entities
     const merged = this.mergeCategoryNodeLists(nonEmpty);
@@ -275,26 +279,84 @@ export class NavigationTransformer {
         sectionName
       );
 
+      // Use documentNodes.length (deduplicated by slugEN across languages) rather than
+      // directFiles.length, which would count EN + PT + ES versions as separate files.
+      const isSingleFile = documentNodes.length === 1;
+      const hasSubcats = subcategoryNodes.length > 0;
+
+      let categoryName = name;
+      let categorySlug = slug;
+      let hasCover = false;
+
+      if (isSingleFile && !hasSubcats) {
+        // Single .md, no subfolders → degenerate, flatten to plain markdown
+        return documentNodes[0] ?? null;
+      } else if (isSingleFile && hasSubcats) {
+        // Single .md + subfolders → auto cover, no frontmatter field needed
+        const coverNode = documentNodes[0];
+        if (coverNode) {
+          categoryName = coverNode.name as LocalizedString;
+          categorySlug = coverNode.slug as LocalizedString;
+          hasCover = true;
+          documentNodes.splice(0, 1);
+        }
+      } else if (hasSubcats) {
+        // Multiple .md files + subfolders → categoryCover: true designates the cover.
+        // Deduplicate by slugEN so EN/PT/ES versions of the same file count as one.
+        const coverFiles = directFiles.filter(f => f.metadata.categoryCover === true);
+
+        // Policy: categoryCover should only be set on the PT file. Warn (but still honor
+        // the flag) when it's found on an EN/ES file, so authors get pointed to the fix.
+        coverFiles
+          .filter(f => f.language !== 'pt')
+          .forEach(f => {
+            this.logger.warn(
+              `CATEGORY_COVER_NON_PT: categoryCover: true found on '${f.path}' (language: ${f.language}, slug: ${f.metadata.slugEN}) in category '${categoryInfo.path}' — this flag should only be set on the PT version of the document.`
+            );
+          });
+
+        const markedSlugs = new Set(coverFiles.map(f => f.metadata.slugEN));
+        if (markedSlugs.size > 1) {
+          this.logger.warn(
+            `Multiple files with categoryCover: true in the same folder — cover logic skipped, falling back to regular category.`,
+            { category: categoryInfo.path, slugs: [...markedSlugs] }
+          );
+        } else if (markedSlugs.size === 1) {
+          const coverSlugEN = [...markedSlugs][0];
+          const coverNodeIdx = documentNodes.findIndex(
+            n => n.type === 'markdown' && (n.slug as any)?.en === coverSlugEN
+          );
+          if (coverNodeIdx !== -1) {
+            const coverNode = documentNodes[coverNodeIdx]!;
+            categoryName = coverNode.name as LocalizedString;
+            categorySlug = coverNode.slug as LocalizedString;
+            hasCover = true;
+            documentNodes.splice(coverNodeIdx, 1);
+          }
+        }
+        // else: no categoryCover marked → regular category, no changes
+      }
+
       // Subcategories first, then direct markdown (same ordering as mergeCategoryNodeLists)
       const combinedChildren = [...subcategoryNodes, ...documentNodes];
 
-      if (combinedChildren.length === 0) {
+      if (combinedChildren.length === 0 && !hasCover) {
         return null;
       }
 
-      const node = {
-        name,
-        slug: slug,
+      const node: any = {
+        name: categoryName,
+        slug: categorySlug,
         origin: '',
-        type: 'category',
+        type: hasCover ? 'markdown' : 'category',
         children: combinedChildren,
-      } as NavigationNode;
+      };
 
       if (typeof categoryInfo.order === 'number') {
         node.order = categoryInfo.order;
       }
 
-      return node;
+      return node as NavigationNode;
 
     } catch (error) {
       this.logger.error('Failed to build navigation node', { error, categoryInfo });
@@ -627,8 +689,11 @@ export class NavigationTransformer {
       return Array.from(docMap.values());
     };
 
+    // Collect markdown nodes (cover-backed categories) separately — they don't need merging
+    const markdownNodes = nodes.filter(n => (n as any).type === 'markdown');
+
     for (const node of nodes) {
-      if ((node as any).type !== 'category') continue; // should not happen here
+      if ((node as any).type !== 'category') continue;
       const slugVal = (node as any).slug as any;
       const key = typeof slugVal === 'string' ? slugVal : (slugVal?.en || JSON.stringify(slugVal));
       if (!bySlug.has(key)) {
@@ -664,7 +729,7 @@ export class NavigationTransformer {
       }
     }
 
-    return Array.from(bySlug.values());
+    return [...Array.from(bySlug.values()), ...markdownNodes];
   }
 
   private generateLocalizedCategorySlugs(

@@ -65,6 +65,42 @@ Generation pipeline:
 - Categories across languages are merged by their English slug so they are treated as a single localized entity
 - Document slugs are derived from filenames; for Announcements we only read the leading date to sort but do not alter names
 
+### Category cover pages
+
+A folder can designate one of its markdown files as the category's landing page (cover). When a cover is set, the category node gets `type: "markdown"` and its `name`/`slug` are taken from the cover file rather than the folder name. The subcategories remain in `children`.
+
+The cover is determined by folder structure and, when needed, by a frontmatter field:
+
+| Folder contents | `categoryCover` field | Result |
+|---|---|---|
+| Single `.md` + subfolders | any | Cover applied automatically |
+| Single `.md`, no subfolders | any | Flattened to a plain markdown node (no category wrapper) |
+| Multiple `.md` + subfolders | none | Regular `type: "category"` |
+| Multiple `.md` + subfolders | `true` on one file | That file becomes the cover |
+| Multiple `.md` + subfolders | `true` on more than one file | Warning logged, falls back to regular category |
+
+To explicitly mark a file as cover when there are sibling markdown files, add to its frontmatter:
+
+```yaml
+categoryCover: true
+```
+
+`categoryCover` is deduplicated by `slugEN`, so it doesn't matter which language file carries the flag — the cover still applies to the EN/ES/PT versions of that document. However, by convention **it should only be set on the PT file**. Setting it on an EN or ES file still works, but logs a `[COVER]` warning (visible with `--show-warnings` and in the `--report` markdown report) pointing to the file that should be fixed.
+
+Example output for a cover-backed category:
+
+```json
+{
+  "type": "markdown",
+  "name": { "en": "Account settings - Overview", "es": "...", "pt": "..." },
+  "slug": { "en": "account-settings-overview", "es": "...", "pt": "..." },
+  "origin": "",
+  "children": [
+    { "type": "category", "name": { ... }, "slug": { ... }, "children": [...] }
+  ]
+}
+```
+
 ### Validation
 
 See also: Troubleshooting guide at docs/troubleshooting.md
@@ -72,7 +108,7 @@ See also: Troubleshooting guide at docs/troubleshooting.md
 - JSON Schema (Draft‑07) at `source/schemas/navigation.schema.json`
   - name and slug are LocalizedString objects with en, es, pt keys
   - Categories: type=category, children >= 1
-  - Documents: type=markdown, children must be empty
+  - Documents: type=markdown, children can be empty or non-empty (when acting as a category cover)
   - Additional properties are disallowed
 - Custom checks
   - Sibling categories under the same parent must have unique English slug

@@ -11,6 +11,7 @@ export interface FrontMatter {
   updatedAt?: string;
   publishedAt?: string;
   order?: number; // Order for track articles
+  categoryCover?: boolean; // If true, this file is used as the cover page of its parent category
   [key: string]: any; // Allow additional fields
 }
 
