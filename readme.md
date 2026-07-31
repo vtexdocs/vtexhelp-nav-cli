@@ -85,6 +85,8 @@ To explicitly mark a file as cover when there are sibling markdown files, add to
 categoryCover: true
 ```
 
+`categoryCover` is deduplicated by `slugEN`, so it doesn't matter which language file carries the flag — the cover still applies to the EN/ES/PT versions of that document. However, by convention **it should only be set on the PT file**. Setting it on an EN or ES file still works, but logs a `[COVER]` warning (visible with `--show-warnings` and in the `--report` markdown report) pointing to the file that should be fixed.
+
 Example output for a cover-backed category:
 
 ```json

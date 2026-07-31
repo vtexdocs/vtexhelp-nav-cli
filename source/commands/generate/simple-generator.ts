@@ -550,6 +550,16 @@ export class SimpleNavigationGenerator {
     for (const msg of slugMismatchLogs) {
       this.allWarnings.push(`[SLUG] ${msg}`)
     }
+
+    // Add categoryCover-on-non-PT-file warnings extracted from logs
+    const coverLangLogs = this.logger
+      .getLogs('warn')
+      .map(l => l.message)
+      .filter(m => typeof m === 'string' && m.startsWith('CATEGORY_COVER_NON_PT:'))
+
+    for (const msg of coverLangLogs) {
+      this.allWarnings.push(`[COVER] ${msg.replace('CATEGORY_COVER_NON_PT: ', '')}`)
+    }
   }
   
   private displayWarnings() {

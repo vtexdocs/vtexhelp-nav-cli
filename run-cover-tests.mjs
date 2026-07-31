@@ -206,6 +206,39 @@ await test('Case 6 — EN/PT/ES variants of same slugEN count as one file (auto 
   assert(node?.type === 'markdown', `expected type markdown (auto cover), got ${node?.type}`);
 });
 
+await test('Case 8 — categoryCover: true on an EN file warns that it should be set on PT', async () => {
+  const warnings = [];
+  const transformer = new NavigationTransformer(makeLogger(warnings), defaultOptions);
+  const node = await buildNode(
+    transformer,
+    makeCategoryInfo('test-category'),
+    makeHierarchy(),
+    [makeFile('overview', { categoryCover: true, locale: 'en' }), makeFile('getting-started')],
+    makeSubcat('test-category'),
+  );
+  assert(node?.type === 'markdown', `expected type markdown, got ${node?.type}`);
+  assert(
+    warnings.some(w => w.startsWith('CATEGORY_COVER_NON_PT:') && w.includes('language: en')),
+    `expected CATEGORY_COVER_NON_PT warning, got: ${JSON.stringify(warnings)}`
+  );
+});
+
+await test('Case 9 — categoryCover: true on the PT file does not warn', async () => {
+  const warnings = [];
+  const transformer = new NavigationTransformer(makeLogger(warnings), defaultOptions);
+  await buildNode(
+    transformer,
+    makeCategoryInfo('test-category'),
+    makeHierarchy(),
+    [makeFile('overview', { categoryCover: true, locale: 'pt' }), makeFile('getting-started')],
+    makeSubcat('test-category'),
+  );
+  assert(
+    !warnings.some(w => w.startsWith('CATEGORY_COVER_NON_PT:')),
+    `expected no CATEGORY_COVER_NON_PT warning, got: ${JSON.stringify(warnings)}`
+  );
+});
+
 await test('Case 7 — cover-backed markdown node with children is not dropped by pruning', async () => {
   const transformer = new NavigationTransformer(makeLogger(), defaultOptions);
   const node = await buildNode(

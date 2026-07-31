@@ -303,11 +303,19 @@ export class NavigationTransformer {
       } else if (hasSubcats) {
         // Multiple .md files + subfolders → categoryCover: true designates the cover.
         // Deduplicate by slugEN so EN/PT/ES versions of the same file count as one.
-        const markedSlugs = new Set(
-          directFiles
-            .filter(f => f.metadata.categoryCover === true)
-            .map(f => f.metadata.slugEN)
-        );
+        const coverFiles = directFiles.filter(f => f.metadata.categoryCover === true);
+
+        // Policy: categoryCover should only be set on the PT file. Warn (but still honor
+        // the flag) when it's found on an EN/ES file, so authors get pointed to the fix.
+        coverFiles
+          .filter(f => f.language !== 'pt')
+          .forEach(f => {
+            this.logger.warn(
+              `CATEGORY_COVER_NON_PT: categoryCover: true found on '${f.path}' (language: ${f.language}, slug: ${f.metadata.slugEN}) in category '${categoryInfo.path}' — this flag should only be set on the PT version of the document.`
+            );
+          });
+
+        const markedSlugs = new Set(coverFiles.map(f => f.metadata.slugEN));
         if (markedSlugs.size > 1) {
           this.logger.warn(
             `Multiple files with categoryCover: true in the same folder — cover logic skipped, falling back to regular category.`,
