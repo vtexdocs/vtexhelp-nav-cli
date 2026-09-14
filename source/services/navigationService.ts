@@ -68,7 +68,7 @@ export function getNavigationStats(navigation: Navigation) {
   function traverseNode(node: any, depth: number = 0) {
     if (depth > maxDepth) maxDepth = depth;
     
-    if (node.type === 'category') {
+    if (node.type === 'category' || node.type === 'divider') {
       totalCategories++;
     } else if (node.type === 'markdown') {
       totalDocuments++;

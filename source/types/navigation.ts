@@ -15,7 +15,7 @@ export interface LocalizedString {
 /**
  * Type for node types in the navigation tree
  */
-export type NodeType = 'category' | 'markdown';
+export type NodeType = 'category' | 'markdown' | 'divider';
 
 /**
  * Navigation node that can be either a category (container) or markdown (document)
@@ -30,7 +30,7 @@ export interface NavigationNode {
   /** Origin field (typically empty string) */
   origin?: string;
   
-  /** Type of node: 'category' for containers, 'markdown' for documents */
+  /** Type of node: 'category' or 'divider' for containers, 'markdown' for documents */
   type: NodeType;
   
   /** Order for sorting (optional) */

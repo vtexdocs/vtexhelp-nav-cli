@@ -80,7 +80,7 @@ export const NavigationTree: React.FC<NavigationTreeProps> = ({ navigation, init
           flatItems.push({
             id: nodeId,
             name: nodeName,
-            type: node.type === 'category' ? 'category' : 'document',
+            type: node.type === 'markdown' ? 'document' : 'category',
             depth,
             hasChildren: node.children && node.children.length > 0,
             childCount: node.children ? node.children.length : 0,

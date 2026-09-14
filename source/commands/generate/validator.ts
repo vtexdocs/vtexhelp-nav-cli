@@ -176,11 +176,11 @@ export class NavigationValidator {
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    // Check sibling category english slug uniqueness per parent
+    // Check sibling category/divider english slug uniqueness per parent
     const checkCategoryUniq = (nodes: any[], path: string[]) => {
       const seen = new Map<string, number>();
       for (const n of nodes || []) {
-        if (n?.type === 'category') {
+        if (n?.type === 'category' || n?.type === 'divider') {
           const key = typeof n.slug === 'string' ? n.slug : n.slug?.en || '';
           if (key) {
             const prev = seen.get(key) || 0;
@@ -194,8 +194,8 @@ export class NavigationValidator {
         }
       }
       for (const n of nodes || []) {
-        if (n?.type === 'category' && Array.isArray(n.children)) {
-          checkCategoryUniq(n.children, [...path, (n.name?.en || '(category)')]);
+        if ((n?.type === 'category' || n?.type === 'divider') && Array.isArray(n.children)) {
+          checkCategoryUniq(n.children, [...path, (n.name?.en || `(${n.type})`)]);
         }
       }
     };
@@ -358,7 +358,7 @@ export class NavigationValidator {
               }
               slugMap.get(documentSlug)!.push(documentInfo);
             }
-          } else if (child.type === 'category') {
+          } else if (child.type === 'category' || child.type === 'divider') {
             // Collect nested categories for recursion
             nestedCategories.push(child);
           }
@@ -430,8 +430,8 @@ export class NavigationValidator {
       if (node.type === 'markdown') {
         // This is a document (per navigation schema)
         documents++;
-      } else if (node.type === 'category') {
-        // This is a category (per navigation schema)
+      } else if (node.type === 'category' || node.type === 'divider') {
+        // This is a container node (per navigation schema)
         categories++;
         if (node.children && Array.isArray(node.children)) {
           // Recursively count children

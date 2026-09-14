@@ -41,7 +41,7 @@ export function createValidateCommand() {
         const check = (nodes: any[], pathParts: string[]) => {
           const map = new Map<string, number>();
           for (const n of nodes || []) {
-            if (n?.type === 'category') {
+            if (n?.type === 'category' || n?.type === 'divider') {
               const key = typeof n.slug === 'string' ? n.slug : n.slug?.en || '';
               if (key) map.set(key, (map.get(key) || 0) + 1);
             }
@@ -49,7 +49,7 @@ export function createValidateCommand() {
           for (const [k, count] of map) {
             if (count > 1) customErrors.push(`Duplicate category englishSlug '${k}' at ${pathParts.join(' > ')}`);
           }
-          for (const n of nodes || []) if (n?.type === 'category') check(n.children || [], [...pathParts, n.name?.en || '(category)']);
+          for (const n of nodes || []) if (n?.type === 'category' || n?.type === 'divider') check(n.children || [], [...pathParts, n.name?.en || `(${n.type})`]);
         };
         for (const sec of data.navbar || []) check(sec.categories || [], [sec.documentation || 'section']);
 

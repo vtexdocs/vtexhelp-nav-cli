@@ -20,6 +20,7 @@ export interface CategoryMetadata {
   name: string;
   slug: string;
   order: number;
+  type?: 'category' | 'divider';
   [key: string]: any; // Allow additional fields for future extensibility
 }
 

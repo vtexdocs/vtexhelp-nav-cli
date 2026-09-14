@@ -212,7 +212,7 @@ export class NavigationTransformer {
       }
     }
 
-    // Drop categories that ended up empty after pruning.
+    // Drop categories/dividers that ended up empty after pruning.
     // Markdown nodes are kept as-is: they were promoted from degenerate single-file categories.
     const nonEmpty = nodes.filter(n => {
       if ((n as any).type === 'markdown') return true;
@@ -279,11 +279,12 @@ export class NavigationTransformer {
         sectionName
       );
 
+      const containerType = this.resolveContainerType(categoryInfo.localizedMetadata);
       let categoryName = name;
       let categorySlug = slug;
       let hasCover = false;
 
-      if (directFiles.length > 0) {
+      if (containerType !== 'divider' && directFiles.length > 0) {
         // A category becomes a cover-backed markdown node when a direct .md file
         // explicitly opts in via categoryCover: true.
         // Deduplicate by slugEN so EN/PT/ES versions of the same file count as one.
@@ -334,7 +335,7 @@ export class NavigationTransformer {
         name: categoryName,
         slug: categorySlug,
         origin: '',
-        type: hasCover ? 'markdown' : 'category',
+        type: hasCover ? 'markdown' : containerType,
         children: combinedChildren,
       };
 
@@ -683,7 +684,7 @@ export class NavigationTransformer {
     const markdownNodes = nodes.filter(n => (n as any).type === 'markdown');
 
     for (const node of nodes) {
-      if ((node as any).type !== 'category') continue;
+      if (!this.isContainerNode(node)) continue;
       const slugVal = (node as any).slug as any;
       const key = typeof slugVal === 'string' ? slugVal : (slugVal?.en || JSON.stringify(slugVal));
       if (!bySlug.has(key)) {
@@ -710,8 +711,12 @@ export class NavigationTransformer {
           existing.order = (node as any).order;
         }
 
-        // Recursively merge category children by slug; docs dedup by slug
-        const categoryChildren = mergedChildren.filter(ch => (ch as any).type === 'category');
+        if ((node as any).type === 'divider') {
+          existing.type = 'divider';
+        }
+
+        // Recursively merge category/divider children by slug; docs dedup by slug
+        const categoryChildren = mergedChildren.filter(ch => this.isContainerNode(ch));
         const docChildren = mergedChildren.filter(ch => (ch as any).type === 'markdown');
         const mergedCategoryChildren = this.mergeCategoryNodeLists(categoryChildren);
         const dedupedDocs = dedupeDocs(docChildren);
@@ -788,6 +793,33 @@ export class NavigationTransformer {
     return slugs as LocalizedString;
   }
 
+  private isContainerNode(node: NavigationNode): boolean {
+    const type = (node as any).type;
+    return type === 'category' || type === 'divider';
+  }
+
+  private resolveContainerType(
+    localizedMetadata?: { [lang: string]: { type?: string } }
+  ): 'category' | 'divider' {
+    if (!localizedMetadata) {
+      return 'category';
+    }
+
+    const preferredLanguages = ['pt', 'en', 'es'];
+    for (const lang of preferredLanguages) {
+      if (localizedMetadata[lang]?.type === 'divider') {
+        return 'divider';
+      }
+    }
+
+    for (const metadata of Object.values(localizedMetadata)) {
+      if (metadata?.type === 'divider') {
+        return 'divider';
+      }
+    }
+
+    return 'category';
+  }
 
   private countNavigationNodes(navbar: NavbarItem[]): number {
     let count = 0;
