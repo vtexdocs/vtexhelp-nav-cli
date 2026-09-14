@@ -56,6 +56,7 @@ Generation pipeline:
 - The generator reads `metadata.json` in category folders (for each language) when present
   - Uses `name` to set localized category titles
   - Uses `order` to sort categories; this applies to all sections
+  - Uses `type: "divider"` when present; the node is emitted as a divider (same structure as a category)
   - Falls back to legacy `order.json` if needed
 - When metadata is absent, names are derived from folder names and categories are sorted alphabetically
 

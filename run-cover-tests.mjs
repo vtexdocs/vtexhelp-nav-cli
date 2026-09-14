@@ -293,6 +293,57 @@ await test('Case 7: cover-backed markdown node with children is not dropped by p
   assert(Array.isArray(node?.children), 'children should be an array');
 });
 
+await test('Case 10: metadata.json type divider is emitted as divider', async () => {
+  const transformer = new NavigationTransformer(makeLogger(), defaultOptions);
+  const node = await buildNode(
+    transformer,
+    makeCategoryInfo('test-category', {
+      localizedMetadata: {
+        pt: { id: 'test-category', name: 'Categoria de Teste', slug: 'test-category', order: 1, type: 'divider' },
+      },
+    }),
+    makeHierarchy(),
+    [makeFile('overview')],
+    {},
+  );
+  assert(node?.type === 'divider', `expected type divider, got ${node?.type}`);
+  assert(node?.children?.length === 1, `expected one child, got ${node?.children?.length}`);
+});
+
+await test('Case 11: divider with nested subcategory keeps children', async () => {
+  const transformer = new NavigationTransformer(makeLogger(), defaultOptions);
+  const node = await buildNode(
+    transformer,
+    makeCategoryInfo('test-category', {
+      localizedMetadata: {
+        pt: { id: 'test-category', name: 'Categoria de Teste', slug: 'test-category', order: 1, type: 'divider' },
+      },
+    }),
+    makeHierarchy(),
+    [makeFile('overview')],
+    makeSubcat('test-category'),
+  );
+  assert(node?.type === 'divider', `expected type divider, got ${node?.type}`);
+  assert(node?.children?.some(c => c?.type === 'category'), 'expected a nested category child');
+});
+
+await test('Case 12: categoryCover is ignored when metadata type is divider', async () => {
+  const transformer = new NavigationTransformer(makeLogger(), defaultOptions);
+  const node = await buildNode(
+    transformer,
+    makeCategoryInfo('test-category', {
+      localizedMetadata: {
+        pt: { id: 'test-category', name: 'Categoria de Teste', slug: 'test-category', order: 1, type: 'divider' },
+      },
+    }),
+    makeHierarchy(),
+    [makeFile('overview', { categoryCover: true }), makeFile('getting-started')],
+    {},
+  );
+  assert(node?.type === 'divider', `expected type divider, got ${node?.type}`);
+  assert(node?.children?.length === 2, `expected both files as children, got ${node?.children?.length}`);
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 console.log(`\n${passed + failed} tests: ${passed} passed, ${failed} failed\n`);

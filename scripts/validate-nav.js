@@ -104,7 +104,7 @@ function getNodeType(node) {
   if (getChildren(node).length > 0) return 'category';
   if (node.type && typeof node.type === 'string') {
     const t = node.type.toLowerCase();
-    if (t.includes('category')) return 'category';
+    if (t.includes('category') || t.includes('divider')) return 'category';
     if (t.includes('doc') || t.includes('article') || t.includes('page')) return 'document';
   }
   // Heuristic: has a path/slug but no children
