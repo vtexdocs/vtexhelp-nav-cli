@@ -522,7 +522,7 @@ export class CategoryBuilder {
         currentMap[levelPath] = {
           name: localizedName,
           children: isLeafLevel
-            ? { files: this.sortTrackArticles(files, section), subcategories: {} }
+            ? { files, subcategories: {} }
             : { files: [], subcategories: {} },
           path: levelPath,
           level: i + 1,
@@ -541,11 +541,10 @@ export class CategoryBuilder {
         // Merge direct .md files at this level (may coexist with subcategories)
         const entry = currentMap[levelPath]!;
         const prev = entry.children;
-        const mergedFiles = this.sortTrackArticles([...prev.files, ...files], section);
         currentMap[levelPath] = {
           ...entry,
           children: {
-            files: mergedFiles,
+            files: [...prev.files, ...files],
             subcategories: prev.subcategories,
           },
         };
@@ -558,43 +557,6 @@ export class CategoryBuilder {
         currentMap = sub;
       }
     }
-  }
-
-  /**
-   * Sort track articles by their order property from frontmatter.
-   *
-   * NOTE: this only affects the intermediate CategoryMap. NavigationTransformer.sortDocumentNodes
-   * always re-sorts document nodes (all sections, using the order+title rules from EDU-18801)
-   * right before navigation.json is written, so this function's output order has no effect on
-   * the final result. Left as-is intentionally to keep this change scoped to the code that
-   * actually determines the shipped order.
-   */
-  private sortTrackArticles(files: ContentFile[], section: string): ContentFile[] {
-    if (section !== 'tracks') {
-      return files;
-    }
-    
-    // Sort files by the order property in frontmatter, then by title as fallback
-    return files.sort((a, b) => {
-      const orderA = a.metadata.order;
-      const orderB = b.metadata.order;
-      
-      // If both have order values, sort by order
-      if (typeof orderA === 'number' && typeof orderB === 'number') {
-        return orderA - orderB;
-      }
-      
-      // If only one has an order, prioritize the one with order
-      if (typeof orderA === 'number' && typeof orderB !== 'number') {
-        return -1;
-      }
-      if (typeof orderB === 'number' && typeof orderA !== 'number') {
-        return 1;
-      }
-      
-      // If neither has order, sort by title
-      return a.metadata.title.localeCompare(b.metadata.title);
-    });
   }
 
   /**
