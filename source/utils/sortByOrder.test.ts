@@ -28,6 +28,14 @@ test('compareByOrderThenTitle: neither has an order -> sorts by title', (t) => {
   t.is(compareByOrderThenTitle(undefined, undefined, 'Same', 'Same'), 0);
 });
 
+test('compareByOrderThenTitle: locale choice is symmetric regardless of argument order', (t) => {
+  // A pt-only title vs an es-only title, both missing order: the locale used for the
+  // comparison must not depend on which one is passed as "a".
+  const forward = compareByOrderThenTitle(undefined, undefined, 'Édição', 'Ñandú', 'pt', 'es');
+  const reversed = compareByOrderThenTitle(undefined, undefined, 'Ñandú', 'Édição', 'es', 'pt');
+  t.is(Math.sign(forward), -Math.sign(reversed));
+});
+
 test('resolveFallbackTitle: picks English when present', (t) => {
   t.deepEqual(resolveFallbackTitle({ en: 'Hello', pt: 'Olá', es: 'Hola' }), {
     title: 'Hello',

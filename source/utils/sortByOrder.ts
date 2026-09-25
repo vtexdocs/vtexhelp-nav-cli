@@ -7,12 +7,26 @@
  * - A defined `order` always outranks an undefined one.
  * - With no order on either side, sort by title.
  */
+type Locale = 'en' | 'pt' | 'es';
+
+// Fixed preference order used to pick ONE shared locale for a comparison between
+// two titles that may come from different fallback locales. Deriving it from both
+// sides (rather than always using the first argument's locale) keeps the
+// comparator symmetric: compare(a, b) and compare(b, a) agree on which locale to
+// collate with, regardless of which node the sort happened to pass as "a".
+const LOCALE_PRIORITY: Record<Locale, number> = {en: 0, pt: 1, es: 2};
+
+function pickSharedLocale(localeA: Locale, localeB: Locale): Locale {
+  return LOCALE_PRIORITY[localeA] <= LOCALE_PRIORITY[localeB] ? localeA : localeB;
+}
+
 export function compareByOrderThenTitle(
   orderA: number | undefined,
   orderB: number | undefined,
   titleA: string,
   titleB: string,
-  localeTag = 'en'
+  localeA: Locale = 'en',
+  localeB: Locale = localeA
 ): number {
   const aHasOrder = typeof orderA === 'number';
   const bHasOrder = typeof orderB === 'number';
@@ -26,7 +40,8 @@ export function compareByOrderThenTitle(
     return aHasOrder ? -1 : 1;
   }
 
-  return titleA.localeCompare(titleB, localeTag, {sensitivity: 'base'});
+  const sharedLocale = pickSharedLocale(localeA, localeB);
+  return titleA.localeCompare(titleB, sharedLocale, {sensitivity: 'base'});
 }
 
 type LocalizedTitle = {en: string; es: string; pt: string};
@@ -41,7 +56,7 @@ type LocalizedTitle = {en: string; es: string; pt: string};
  */
 export function resolveFallbackTitle(
   name: LocalizedTitle
-): {title: string; locale: 'en' | 'pt' | 'es'} {
+): {title: string; locale: Locale} {
   if (name.en) {
     return {title: name.en, locale: 'en'};
   }

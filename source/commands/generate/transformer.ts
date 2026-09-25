@@ -362,6 +362,14 @@ export class NavigationTransformer {
   ): Promise<NavigationNode[]> {
     const nodes: NavigationNode[] = [];
 
+    // Sort deterministically (by order, then title) before duplicate-slugEN detection
+    // below. Detection keeps only the first file per duplicate group, so this makes
+    // which file survives a genuine slugEN collision depend on authored order/title
+    // rather than on filesystem scan order.
+    files = [...files].sort((a, b) =>
+      compareByOrderThenTitle(a.metadata.order, b.metadata.order, a.metadata.title, b.metadata.title, a.language, b.language)
+    );
+
     // Use section-level slug tracking if provided, otherwise fall back to category-level
     const processedSlugs = sectionProcessedSlugs || new Set<string>();
     const fileMap = slugToFileMap || new Map<string, ContentFile>();
@@ -478,9 +486,9 @@ export class NavigationTransformer {
           return dateB - dateA;
         }
         // Fallback to title alphabetical for stable ordering
-        const { title: titleA, locale } = resolveFallbackTitle(a.name as LocalizedString);
-        const { title: titleB } = resolveFallbackTitle(b.name as LocalizedString);
-        return titleA.toLowerCase().localeCompare(titleB.toLowerCase(), locale, { sensitivity: 'base' });
+        const { title: titleA, locale: localeA } = resolveFallbackTitle(a.name as LocalizedString);
+        const { title: titleB, locale: localeB } = resolveFallbackTitle(b.name as LocalizedString);
+        return compareByOrderThenTitle(undefined, undefined, titleA, titleB, localeA, localeB);
       });
     } else {
       // For all other sections (tracks, tutorials, faq, known-issues, troubleshooting),
@@ -488,9 +496,9 @@ export class NavigationTransformer {
       nodes.sort((a, b) => {
         const orderA = (a as any).order;
         const orderB = (b as any).order;
-        const { title: titleA, locale } = resolveFallbackTitle(a.name as LocalizedString);
-        const { title: titleB } = resolveFallbackTitle(b.name as LocalizedString);
-        return compareByOrderThenTitle(orderA, orderB, titleA.toLowerCase(), titleB.toLowerCase(), locale);
+        const { title: titleA, locale: localeA } = resolveFallbackTitle(a.name as LocalizedString);
+        const { title: titleB, locale: localeB } = resolveFallbackTitle(b.name as LocalizedString);
+        return compareByOrderThenTitle(orderA, orderB, titleA, titleB, localeA, localeB);
       });
     }
   }
@@ -503,9 +511,9 @@ export class NavigationTransformer {
     nodes.sort((a, b) => {
       const orderA = (a as any).order;
       const orderB = (b as any).order;
-      const { title: titleA, locale } = resolveFallbackTitle(a.name as LocalizedString);
-      const { title: titleB } = resolveFallbackTitle(b.name as LocalizedString);
-      return compareByOrderThenTitle(orderA, orderB, titleA.toLowerCase(), titleB.toLowerCase(), locale);
+      const { title: titleA, locale: localeA } = resolveFallbackTitle(a.name as LocalizedString);
+      const { title: titleB, locale: localeB } = resolveFallbackTitle(b.name as LocalizedString);
+      return compareByOrderThenTitle(orderA, orderB, titleA, titleB, localeA, localeB);
     });
   }
 
