@@ -561,7 +561,13 @@ export class CategoryBuilder {
   }
 
   /**
-   * Sort track articles by their order property from frontmatter
+   * Sort track articles by their order property from frontmatter.
+   *
+   * NOTE: this only affects the intermediate CategoryMap. NavigationTransformer.sortDocumentNodes
+   * always re-sorts document nodes (all sections, using the order+title rules from EDU-18801)
+   * right before navigation.json is written, so this function's output order has no effect on
+   * the final result. Left as-is intentionally to keep this change scoped to the code that
+   * actually determines the shipped order.
    */
   private sortTrackArticles(files: ContentFile[], section: string): ContentFile[] {
     if (section !== 'tracks') {

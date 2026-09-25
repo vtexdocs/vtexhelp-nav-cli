@@ -16,6 +16,7 @@ import type {
 } from './types.js';
 import { DualLogger } from './ui/logger.js';
 import { getSectionSlugPrefix, getSectionConfig } from '../../config/sections.config.js';
+import { compareByOrderThenTitle, resolveFallbackTitle } from '../../utils/sortByOrder.js';
 
 export class NavigationTransformer {
   private logger: DualLogger;
@@ -467,32 +468,7 @@ export class NavigationTransformer {
    * Sort document nodes based on section-specific rules
    */
   private sortDocumentNodes(nodes: NavigationNode[], sectionName?: string): void {
-    if (sectionName === 'tracks') {
-      // For tracks, sort by order property from frontmatter if available
-      nodes.sort((a, b) => {
-        // Extract order values from the original files (stored in children metadata)
-        const orderA = (a as any).order;
-        const orderB = (b as any).order;
-
-        // If both have order values, sort by order
-        if (typeof orderA === 'number' && typeof orderB === 'number') {
-          return orderA - orderB;
-        }
-
-        // If only one has an order, prioritize the one with order
-        if (typeof orderA === 'number' && typeof orderB !== 'number') {
-          return -1;
-        }
-        if (typeof orderB === 'number' && typeof orderA !== 'number') {
-          return 1;
-        }
-
-        // If neither has order, sort by English title
-        const titleA = ((a.name as any).en || '').toLowerCase();
-        const titleB = ((b.name as any).en || '').toLowerCase();
-        return titleA.localeCompare(titleB);
-      });
-    } else if (sectionName === 'announcements') {
+    if (sectionName === 'announcements') {
       // For announcements, sort by date (newest first) using YYYY-MM-DD prefix in slug if available
       nodes.sort((a, b) => {
         const dateA = this.extractDateFromNodeSlug(a);
@@ -501,17 +477,20 @@ export class NavigationTransformer {
           // Descending: newest first
           return dateB - dateA;
         }
-        // Fallback to English title alphabetical for stable ordering
-        const titleA = ((a.name as any).en || '').toLowerCase();
-        const titleB = ((b.name as any).en || '').toLowerCase();
-        return titleA.localeCompare(titleB);
+        // Fallback to title alphabetical for stable ordering
+        const { title: titleA, locale } = resolveFallbackTitle(a.name as LocalizedString);
+        const { title: titleB } = resolveFallbackTitle(b.name as LocalizedString);
+        return titleA.toLowerCase().localeCompare(titleB.toLowerCase(), locale, { sensitivity: 'base' });
       });
     } else {
-      // Default sorting by English title for other sections
+      // For all other sections (tracks, tutorials, faq, known-issues, troubleshooting),
+      // sort by the order property from frontmatter, falling back to title
       nodes.sort((a, b) => {
-        const titleA = ((a.name as any).en || '').toLowerCase();
-        const titleB = ((b.name as any).en || '').toLowerCase();
-        return titleA.localeCompare(titleB);
+        const orderA = (a as any).order;
+        const orderB = (b as any).order;
+        const { title: titleA, locale } = resolveFallbackTitle(a.name as LocalizedString);
+        const { title: titleB } = resolveFallbackTitle(b.name as LocalizedString);
+        return compareByOrderThenTitle(orderA, orderB, titleA.toLowerCase(), titleB.toLowerCase(), locale);
       });
     }
   }
@@ -522,27 +501,11 @@ export class NavigationTransformer {
   private sortCategoryNodes(nodes: NavigationNode[]): void {
     // For all sections, sort by order property from metadata.json if available
     nodes.sort((a, b) => {
-      // Extract order values from the category data
       const orderA = (a as any).order;
       const orderB = (b as any).order;
-
-      // If both have order values, sort by order
-      if (typeof orderA === 'number' && typeof orderB === 'number') {
-        return orderA - orderB;
-      }
-
-      // If only one has an order, prioritize the one with order
-      if (typeof orderA === 'number' && typeof orderB !== 'number') {
-        return -1;
-      }
-      if (typeof orderB === 'number' && typeof orderA !== 'number') {
-        return 1;
-      }
-
-      // If neither has order, sort by English title
-      const titleA = ((a.name as any).en || '').toLowerCase();
-      const titleB = ((b.name as any).en || '').toLowerCase();
-      return titleA.localeCompare(titleB);
+      const { title: titleA, locale } = resolveFallbackTitle(a.name as LocalizedString);
+      const { title: titleB } = resolveFallbackTitle(b.name as LocalizedString);
+      return compareByOrderThenTitle(orderA, orderB, titleA.toLowerCase(), titleB.toLowerCase(), locale);
     });
   }
 
