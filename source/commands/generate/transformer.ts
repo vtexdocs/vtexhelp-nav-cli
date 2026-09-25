@@ -16,7 +16,12 @@ import type {
 } from './types.js';
 import { DualLogger } from './ui/logger.js';
 import { getSectionSlugPrefix, getSectionConfig } from '../../config/sections.config.js';
-import { compareByOrderThenTitle, resolveFallbackTitle } from '../../utils/sortByOrder.js';
+import {
+  compareByOrderThenTitle,
+  sortNodesByPrimaryKeyThenTitle,
+  extractDateFromNodeSlug,
+  toFullLocalizedString
+} from '../../utils/sortByOrder.js';
 
 export class NavigationTransformer {
   private logger: DualLogger;
@@ -473,33 +478,17 @@ export class NavigationTransformer {
   }
 
   /**
-   * Sort document nodes based on section-specific rules
+   * Sort document nodes based on section-specific rules. Every section shares the same
+   * "primary key, then locale-aware title" mechanism (sortNodesByPrimaryKeyThenTitle) —
+   * only the primary key extractor and direction differ per section.
    */
   private sortDocumentNodes(nodes: NavigationNode[], sectionName?: string): void {
     if (sectionName === 'announcements') {
-      // For announcements, sort by date (newest first) using YYYY-MM-DD prefix in slug if available
-      nodes.sort((a, b) => {
-        const dateA = this.extractDateFromNodeSlug(a);
-        const dateB = this.extractDateFromNodeSlug(b);
-        if (dateA !== dateB) {
-          // Descending: newest first
-          return dateB - dateA;
-        }
-        // Fallback to title alphabetical for stable ordering
-        const { title: titleA, locale: localeA } = resolveFallbackTitle(a.name as LocalizedString);
-        const { title: titleB, locale: localeB } = resolveFallbackTitle(b.name as LocalizedString);
-        return compareByOrderThenTitle(undefined, undefined, titleA, titleB, localeA, localeB);
-      });
+      // Newest first, by the YYYY-MM-DD date prefix in the slug if available
+      sortNodesByPrimaryKeyThenTitle(nodes, extractDateFromNodeSlug, 'desc');
     } else {
-      // For all other sections (tracks, tutorials, faq, known-issues, troubleshooting),
-      // sort by the order property from frontmatter, falling back to title
-      nodes.sort((a, b) => {
-        const orderA = (a as any).order;
-        const orderB = (b as any).order;
-        const { title: titleA, locale: localeA } = resolveFallbackTitle(a.name as LocalizedString);
-        const { title: titleB, locale: localeB } = resolveFallbackTitle(b.name as LocalizedString);
-        return compareByOrderThenTitle(orderA, orderB, titleA, titleB, localeA, localeB);
-      });
+      // tracks, tutorials, faq, known-issues, troubleshooting: order from frontmatter
+      sortNodesByPrimaryKeyThenTitle(nodes, node => (node as any).order, 'asc');
     }
   }
 
@@ -508,36 +497,7 @@ export class NavigationTransformer {
    */
   private sortCategoryNodes(nodes: NavigationNode[]): void {
     // For all sections, sort by order property from metadata.json if available
-    nodes.sort((a, b) => {
-      const orderA = (a as any).order;
-      const orderB = (b as any).order;
-      const { title: titleA, locale: localeA } = resolveFallbackTitle(a.name as LocalizedString);
-      const { title: titleB, locale: localeB } = resolveFallbackTitle(b.name as LocalizedString);
-      return compareByOrderThenTitle(orderA, orderB, titleA, titleB, localeA, localeB);
-    });
-  }
-
-  // Extract a sortable date (milliseconds since epoch) from a document node's slug.
-  // Supports slugs starting with YYYY-MM-DD, falling back to other locales if EN is empty.
-  private extractDateFromNodeSlug(node: NavigationNode): number {
-    const anyNode = node as any;
-    const slugObj = anyNode.slug;
-    let s = '';
-    if (typeof slugObj === 'string') {
-      s = slugObj;
-    } else if (slugObj && typeof slugObj === 'object') {
-      s = slugObj.en || slugObj.es || slugObj.pt || '';
-    }
-    return this.extractDateFromSlugText(s);
-  }
-
-  private extractDateFromSlugText(text: string): number {
-    // Match prefix like 2025-09-17-...
-    const m = /^([0-9]{4})-([0-9]{2})-([0-9]{2})(?:-|$)/.exec(text || '');
-    if (!m) return 0;
-    const [, y, mm, dd] = m;
-    const ts = Date.parse(`${y}-${mm}-${dd}T00:00:00Z`);
-    return Number.isNaN(ts) ? 0 : ts;
+    sortNodesByPrimaryKeyThenTitle(nodes, node => (node as any).order, 'asc');
   }
 
   private async buildDocumentNode(
@@ -553,9 +513,12 @@ export class NavigationTransformer {
       let slug: LocalizedString;  // Changed to LocalizedString for documents
 
       if (crossLangDoc) {
-        // Use cross-language titles and slugs
-        name = crossLangDoc.title as LocalizedString;
-        slug = crossLangDoc.slug as LocalizedString;
+        // Use cross-language titles and slugs. crossLangDoc.title/slug are genuinely
+        // Partial<LocalizedString> (a run can cover only some languages), so fill
+        // missing languages with '' instead of casting the partial object directly —
+        // LocalizedString promises en/es/pt are always strings, never undefined.
+        name = toFullLocalizedString(crossLangDoc.title);
+        slug = toFullLocalizedString(crossLangDoc.slug);
       } else {
         // Fallback to single language - fill other languages with empty strings
         name = {
