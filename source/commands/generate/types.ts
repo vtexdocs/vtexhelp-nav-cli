@@ -10,7 +10,7 @@ export interface FrontMatter {
   createdAt?: string;
   updatedAt?: string;
   publishedAt?: string;
-  order?: number; // Manual sort position among sibling articles within a folder (tracks, tutorials, faq, known-issues, troubleshooting)
+  order?: number; // Manual sort position among sibling articles within a folder (tracks, tutorials, faq, troubleshooting). Not applied to known-issues -- see sortDocumentNodes.
   categoryCover?: boolean; // If true, this file is used as the cover page of its parent category
   [key: string]: any; // Allow additional fields
 }

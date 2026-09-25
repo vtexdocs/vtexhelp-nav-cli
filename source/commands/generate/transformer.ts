@@ -486,8 +486,14 @@ export class NavigationTransformer {
     if (sectionName === 'announcements') {
       // Newest first, by the YYYY-MM-DD date prefix in the slug if available
       sortNodesByPrimaryKeyThenTitle(nodes, extractDateFromNodeSlug, 'desc');
+    } else if (sectionName === 'known-issues') {
+      // Known Issues content isn't authored through this pipeline today (it lives in a
+      // separate repo with no nav-generation workflow calling this CLI), so there's no
+      // real `order` frontmatter to read here. Keep it on plain alphabetical sorting
+      // rather than advertising order-frontmatter support that doesn't apply.
+      sortNodesByPrimaryKeyThenTitle(nodes, () => undefined, 'asc');
     } else {
-      // tracks, tutorials, faq, known-issues, troubleshooting: order from frontmatter
+      // tracks, tutorials, faq, troubleshooting: order from frontmatter
       sortNodesByPrimaryKeyThenTitle(nodes, node => (node as any).order, 'asc');
     }
   }
