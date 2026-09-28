@@ -11,6 +11,7 @@ import type {
   CategoryHierarchy,
   CategoryMap,
   ContentFile,
+  CrossLanguageDocument,
   GenerationOptions,
   PhaseSummary
 } from './types.js';
@@ -552,15 +553,20 @@ export class NavigationTransformer {
         children: [],
       };
 
-      // Add order information for tracks if available
-      if (typeof file.metadata.order === 'number') {
-        (node as any).order = file.metadata.order;
+      // Resolve `order`. Policy (matching categoryCover): authors should only need to set
+      // it on the PT file, not duplicate it across every language version. Warn (but still
+      // honor it) when it's only found on an EN/ES file, so authors get pointed to the fix.
+      const order = crossLangDoc
+        ? this.resolveOrderPreferringPt(crossLangDoc, file.metadata.slugEN)
+        : file.metadata.order;
+      if (typeof order === 'number') {
+        (node as any).order = order;
       }
 
       this.logger.debug(`Built document node: ${file.fileName}`, {
         title: name,
         slug: slug,
-        order: file.metadata.order,
+        order,
       });
 
       return node;
@@ -569,6 +575,32 @@ export class NavigationTransformer {
       this.logger.error(`Failed to build document node: ${file.path}`, { error });
       return null;
     }
+  }
+
+  /**
+   * Resolves the `order` value for a cross-language document, preferring the PT file
+   * (the policy authors should follow, matching categoryCover). Falls back to whichever
+   * other language has it set, with a warning, so a value is still honored even when it's
+   * on the wrong file.
+   */
+  private resolveOrderPreferringPt(crossLangDoc: CrossLanguageDocument, slugEN: string): number | undefined {
+    const ptOrder = crossLangDoc.pt?.metadata.order;
+    if (typeof ptOrder === 'number') {
+      return ptOrder;
+    }
+
+    const nonPtFileWithOrder = [crossLangDoc.en, crossLangDoc.es].find(
+      f => f && typeof f.metadata.order === 'number'
+    );
+    if (nonPtFileWithOrder) {
+      const order = nonPtFileWithOrder.metadata.order;
+      this.logger.warn(
+        `ORDER_NON_PT: order: ${order} found on '${nonPtFileWithOrder.path}' (language: ${nonPtFileWithOrder.language}, slug: ${slugEN}) — this field should only be set on the PT version of the document.`
+      );
+      return order;
+    }
+
+    return undefined;
   }
 
   private getDocumentSlug(file: ContentFile): string {

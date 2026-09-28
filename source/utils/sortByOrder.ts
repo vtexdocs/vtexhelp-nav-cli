@@ -3,11 +3,13 @@ import type {LocalizedString, NavigationNode} from '../types/navigation.js';
 type Locale = 'en' | 'pt' | 'es';
 
 // Fixed preference order used to pick ONE shared locale for a comparison between
-// two titles that may come from different fallback locales. Deriving it from both
-// sides (rather than always using the first argument's locale) keeps the
-// comparator symmetric: compare(a, b) and compare(b, a) agree on which locale to
-// collate with, regardless of which node the sort happened to pass as "a".
-const LOCALE_PRIORITY: Record<Locale, number> = {en: 0, pt: 1, es: 2};
+// two titles that may come from different fallback locales. PT comes first: PT is
+// this project's canonical/source-of-truth language for ordering metadata (order,
+// categoryCover), so ties should collate by PT rules whenever a PT title is involved.
+// Deriving it from both sides (rather than always using the first argument's locale)
+// keeps the comparator symmetric: compare(a, b) and compare(b, a) agree on which
+// locale to collate with, regardless of which node the sort happened to pass as "a".
+const LOCALE_PRIORITY: Record<Locale, number> = {pt: 0, en: 1, es: 2};
 
 function pickSharedLocale(localeA: Locale, localeB: Locale): Locale {
   return LOCALE_PRIORITY[localeA] <= LOCALE_PRIORITY[localeB] ? localeA : localeB;
@@ -24,7 +26,7 @@ export function compareByPrimaryKeyThenTitle(
   primaryB: number | undefined,
   titleA: string,
   titleB: string,
-  localeA: Locale = 'en',
+  localeA: Locale = 'pt',
   localeB: Locale = localeA,
   direction: 'asc' | 'desc' = 'asc'
 ): number {
@@ -57,7 +59,7 @@ export function compareByOrderThenTitle(
   orderB: number | undefined,
   titleA: string,
   titleB: string,
-  localeA: Locale = 'en',
+  localeA: Locale = 'pt',
   localeB: Locale = localeA
 ): number {
   return compareByPrimaryKeyThenTitle(orderA, orderB, titleA, titleB, localeA, localeB, 'asc');
@@ -66,29 +68,34 @@ export function compareByOrderThenTitle(
 type LocalizedTitle = {en: string; es: string; pt: string};
 
 /**
- * Picks the first non-empty title (en -> pt -> es) to use as a sort key.
+ * Picks the first non-empty title (pt -> en -> es) to use as a sort key.
  *
- * `NavigationNode.name` holds one shared LocalizedString across all locales, so a
- * pt/es-only article's `en` title is often an empty string. Comparing against that
- * blank string (instead of the article's actual title) produced inconsistent sibling
- * order when browsing the pt/es site — this picks a real title instead.
+ * PT is this project's canonical language for ordering metadata (order,
+ * categoryCover), so the alphabetical tiebreak should always follow the PT title
+ * when one exists, not whichever language happens to be available first.
+ *
+ * `NavigationNode.name` holds one shared LocalizedString across all locales, so an
+ * en/es-only article's `pt` title is sometimes an empty string. Comparing against
+ * that blank string (instead of the article's actual title) produced inconsistent
+ * sibling order — this picks a real title instead, falling back to en/es only when
+ * pt is genuinely missing.
  */
 export function resolveFallbackTitle(
   name: LocalizedTitle
 ): {title: string; locale: Locale} {
-  if (name.en) {
-    return {title: name.en, locale: 'en'};
-  }
-
   if (name.pt) {
     return {title: name.pt, locale: 'pt'};
+  }
+
+  if (name.en) {
+    return {title: name.en, locale: 'en'};
   }
 
   if (name.es) {
     return {title: name.es, locale: 'es'};
   }
 
-  return {title: '', locale: 'en'};
+  return {title: '', locale: 'pt'};
 }
 
 /**
